@@ -311,6 +311,9 @@ struct PaneDivider: View {
     @ObservedObject var model: WindowModel
     let available: CGFloat
     @State private var hovering = false
+    /// Translation is measured from gesture start; the ratio at grab time has
+    /// to be remembered, or the drag compounds against itself.
+    @State private var dragBase: CGFloat?
 
     var body: some View {
         Rectangle()
@@ -325,9 +328,12 @@ struct PaneDivider: View {
                     }
                     .gesture(DragGesture()
                         .onChanged { g in
-                            let delta = g.translation.width / available
-                            model.splitRatio = min(0.8, max(0.2, model.splitRatio + delta / 12))
-                        })
+                            let base = dragBase ?? model.splitRatio
+                            dragBase = base
+                            let delta = g.translation.width / max(available, 1)
+                            model.splitRatio = min(0.8, max(0.2, base + delta))
+                        }
+                        .onEnded { _ in dragBase = nil })
             )
     }
 }
@@ -345,6 +351,7 @@ struct SplitHandle: View {
     let min: CGFloat
     let max: CGFloat
     @State private var hovering = false
+    @State private var dragBase: CGFloat?
 
     var body: some View {
         Rectangle()
@@ -359,8 +366,11 @@ struct SplitHandle: View {
                     }
                     .gesture(DragGesture(coordinateSpace: .global)
                         .onChanged { g in
-                            width = Swift.max(min, Swift.min(max, width + g.translation.width / 16))
-                        })
+                            let base = dragBase ?? width
+                            dragBase = base
+                            width = Swift.max(min, Swift.min(max, base + g.translation.width))
+                        }
+                        .onEnded { _ in dragBase = nil })
             )
     }
 }

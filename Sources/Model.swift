@@ -150,6 +150,22 @@ enum ViewMode: String, CaseIterable {
         }
     }
 
+    /// The command that switches to this mode, used for shortcut display.
+    /// Tied to the case, not to position in a parallel array, so adding a
+    /// view mode cannot index out of bounds.
+    var viewCommand: Command {
+        switch self {
+        case .extraLargeIcons: return .viewExtraLarge
+        case .largeIcons: return .viewLarge
+        case .mediumIcons: return .viewMedium
+        case .smallIcons: return .viewSmall
+        case .list: return .viewList
+        case .details: return .viewDetails
+        case .tiles: return .viewTiles
+        case .content: return .viewContent
+        }
+    }
+
     var iconSize: CGFloat {
         switch self {
         case .extraLargeIcons: return 96

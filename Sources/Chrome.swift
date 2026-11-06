@@ -191,9 +191,7 @@ struct AddressBar: View {
                         HStack(spacing: 0) {
                             ForEach(Array(ex.breadcrumbs.enumerated()), id: \.element.id) { i, crumb in
                                 CrumbButton(crumb: crumb, isFirst: i == 0, ex: ex, menus: menus)
-                                if i < ex.breadcrumbs.count - 1 || true {
-                                    CrumbChevron(crumb: crumb, ex: ex, menus: menus)
-                                }
+                                CrumbChevron(crumb: crumb, ex: ex, menus: menus)
                             }
                         }
                         .padding(.leading, 4)
@@ -517,11 +515,9 @@ struct CommandBar: View {
     }
 
     private func viewMenu() -> [MenuEntry] {
-        let viewCommands: [Command] = [.viewExtraLarge, .viewLarge, .viewMedium, .viewSmall,
-                                       .viewList, .viewDetails, .viewTiles, .viewContent]
-        var entries: [MenuEntry] = ViewMode.allCases.enumerated().map { i, mode in
+        var entries: [MenuEntry] = ViewMode.allCases.map { mode in
             MenuEntry(title: mode.rawValue,
-                      shortcut: Settings.shared.display(for: viewCommands[i]),
+                      shortcut: Settings.shared.display(for: mode.viewCommand),
                       radio: prefs.viewMode == mode) {
                 prefs.viewMode = mode
             }

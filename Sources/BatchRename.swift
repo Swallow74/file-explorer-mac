@@ -76,9 +76,25 @@ struct BatchRenameDialog: View {
             seen[newName.lowercased(), default: 0] += 1
             if seen[newName.lowercased()]! > 1 { bad.insert(newName) }
             let target = item.url.deletingLastPathComponent().appendingPathComponent(newName)
-            if newName != item.name && fm.fileExists(atPath: target.path) { bad.insert(newName) }
+            // A case-only rename is not a clash: on the default case-insensitive
+            // APFS, fileExists reports the item's own file. Identity decides, so
+            // a genuine two-file clash on a case-sensitive volume still shows.
+            let same = newName != item.name && Self.sameFile(target, item.url)
+            if newName != item.name && !same && fm.fileExists(atPath: target.path) { bad.insert(newName) }
         }
         return bad
+    }
+
+    private static func sameFile(_ a: URL, _ b: URL) -> Bool {
+        let keys: Set<URLResourceKey> = [.fileIdentifierKey, .volumeIdentifierKey]
+        guard let va = try? a.resourceValues(forKeys: keys),
+              let vb = try? b.resourceValues(forKeys: keys),
+              let ia = va.fileIdentifier as? NSNumber,
+              let ib = vb.fileIdentifier as? NSNumber,
+              let volA = va.volumeIdentifier as? NSObject,
+              let volB = vb.volumeIdentifier as? NSObject
+        else { return false }
+        return ia == ib && volA == volB
     }
 
     private var changedCount: Int {
@@ -189,6 +205,9 @@ struct BatchRenameDialog: View {
                 try FileManager.default.moveItem(at: item.url, to: target)
                 renames.append((item.url, target))
             } catch {
+                // Undo must cover what already happened: a half-applied batch
+                // that cannot be undone is silent data reshuffling.
+                ex.recordBatchRename(renames)
                 ex.sheet = .error("Could not rename “\(item.name)”. \(error.localizedDescription)")
                 return
             }

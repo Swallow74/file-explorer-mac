@@ -295,9 +295,12 @@ struct WinField: NSViewRepresentable {
     var onCommit: (String) -> Void = { _ in }
     var onCancel: () -> Void = {}
     var onTab: (() -> Void)? = nil
+    /// Explorer's inline rename commits when focus leaves the field; the
+    /// address bar does not, so this is opt-in per call site.
+    var commitOnBlur: Bool = false
 
     func makeNSView(context: Context) -> NSTextField {
-        let f = FocusField()
+        let f = NSTextField()
         f.delegate = context.coordinator
         f.isBordered = false
         f.drawsBackground = false
@@ -334,6 +337,7 @@ struct WinField: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: WinField
+        private var resolved = false
         init(_ p: WinField) { parent = p }
 
         func controlTextDidChange(_ obj: Notification) {
@@ -341,12 +345,24 @@ struct WinField: NSViewRepresentable {
             parent.text = f.stringValue
         }
 
+        func controlTextDidEndEditing(_ obj: Notification) {
+            // Blur commits a rename, as Explorer does. Enter and Esc have
+            // already resolved the edit; without the guard they would commit
+            // a second time when the field tears down.
+            defer { resolved = false }
+            guard parent.commitOnBlur, !resolved, let f = obj.object as? NSTextField else { return }
+            resolved = true
+            parent.onCommit(f.stringValue)
+        }
+
         func control(_ control: NSControl, textView: NSTextView,
                      doCommandBy selector: Selector) -> Bool {
             switch selector {
             case #selector(NSResponder.insertNewline(_:)):
+                resolved = true
                 parent.onCommit(control.stringValue); return true
             case #selector(NSResponder.cancelOperation(_:)):
+                resolved = true
                 parent.onCancel(); return true
             case #selector(NSResponder.insertTab(_:)):
                 if let t = parent.onTab { t(); return true }
@@ -354,13 +370,6 @@ struct WinField: NSViewRepresentable {
             default:
                 return false
             }
-        }
-    }
-
-    /// Commits on focus loss, matching Explorer's inline rename.
-    final class FocusField: NSTextField {
-        override func textDidEndEditing(_ notification: Notification) {
-            super.textDidEndEditing(notification)
         }
     }
 }

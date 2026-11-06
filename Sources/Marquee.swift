@@ -57,10 +57,19 @@ final class MarqueeController: ObservableObject {
     // MARK: Dragging
 
     /// Starts a band if the point is on empty space inside a pane.
+    /// `window` is the window the press landed in: zone frames are in each
+    /// window's own root coordinates, so without the filter a second,
+    /// same-sized window can hijack the drag (Dictionary order is random).
     @discardableResult
-    func begin(at point: CGPoint, additive: Bool) -> Bool {
-        guard let (id, zone) = zones.first(where: { $0.value.frame.contains(point) }),
-              let explorer = zone.explorer else { return false }
+    func begin(at point: CGPoint, additive: Bool, in window: NSWindow? = nil) -> Bool {
+        var match: (ObjectIdentifier, Zone)?
+        for (id, zone) in zones {
+            guard zone.frame.contains(point), let explorer = zone.explorer else { continue }
+            if let window, AppState.shared.window(for: explorer) !== window { continue }
+            match = (id, zone)
+            break
+        }
+        guard let (id, zone) = match, let explorer = zone.explorer else { return false }
         // A press on an item belongs to the item, not to a selection band.
         guard !zone.items.values.contains(where: { $0.contains(point) }) else { return false }
 
@@ -104,7 +113,8 @@ final class MarqueeController: ObservableObject {
             let flags = event.modifierFlags
             let additive = flags.contains(.shift) || flags.contains(.command)
                 || flags.contains(.control)
-            return begin(at: RightClickRouter.rootPoint(event), additive: additive)
+            return begin(at: RightClickRouter.rootPoint(event), additive: additive,
+                         in: event.window)
         case .leftMouseDragged:
             guard isDragging else { return false }
             update(to: RightClickRouter.rootPoint(event))

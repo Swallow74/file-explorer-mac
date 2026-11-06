@@ -11,6 +11,28 @@ final class AppState {
     func register(window: NSWindow, model: WindowModel) {
         map[ObjectIdentifier(window)] = model
         if !windows.contains(window) { windows.append(window) }
+        // Closed windows must leave the registry, or every close/reopen cycle
+        // leaks the window, its hosting view, both Explorers and their folder
+        // watchers — and new windows would cascade from a dead window's frame.
+        var observation: NSObjectProtocol?
+        observation = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: window, queue: .main
+        ) { [weak self] note in
+            guard let self, let w = note.object as? NSWindow else { return }
+            if let observation { NotificationCenter.default.removeObserver(observation) }
+            self.map.removeValue(forKey: ObjectIdentifier(w))
+            self.windows.removeAll { $0 === w }
+        }
+    }
+
+    /// The window a pane belongs to. Zone frames are each window's own root
+    /// coordinates, so window-scoped hit tests need this to avoid picking a
+    /// same-sized pane out of another window.
+    func window(for explorer: Explorer) -> NSWindow? {
+        windows.first { window in
+            guard let m = model(for: window) else { return false }
+            return m.left === explorer || m.right === explorer
+        }
     }
 
     func model(for window: NSWindow?) -> WindowModel? {

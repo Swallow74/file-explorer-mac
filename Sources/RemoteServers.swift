@@ -44,22 +44,37 @@ enum RemoteServers {
             return
         }
         let before = Set(mountedVolumes().map(\.path))
-        NSWorkspace.shared.open(url)
         remember(address)
-
-        // Watch /Volumes for whatever appears once the user has authenticated.
-        var waited = 0.0
-        func poll() {
-            waited += 1.0
-            let now = mountedVolumes()
-            if let fresh = now.first(where: { !before.contains($0.path) }) {
-                completion(fresh)
-                return
+        // macOS owns the authentication sheet, and its completion says when
+        // the mount is really done. Watching /Volumes on a timer instead
+        // counted any volume that happened to appear — a USB stick mounted
+        // during the sign-in wait would navigate the user to the wrong place,
+        // and an already-mounted share never "appears" at all, so the timer
+        // only ever ended in a false failure after 90 seconds.
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        NSWorkspace.shared.open(url, configuration: config, completionHandler: { _, error in
+            DispatchQueue.main.async {
+                if error != nil { completion(nil); return }
+                completion(volumeMatching(url) ?? mountedVolumes().first { !before.contains($0.path) })
             }
-            if waited > 90 { completion(nil); return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: poll)
+        })
+    }
+
+    /// The mounted volume that corresponds to a share URL: by mount name, or,
+    /// more reliably, by the URL macOS would use to remount it.
+    private static func volumeMatching(_ share: URL) -> URL? {
+        let host = share.host?.lowercased()
+        let shareName = share.lastPathComponent.lowercased()
+        let remountKey = URLResourceKey(rawValue: "URLVolumeURLForRemountingKey")
+        for v in mountedVolumes() {
+            if !shareName.isEmpty, v.lastPathComponent.lowercased() == shareName { return v }
+            if let vals = try? (v as NSURL).resourceValues(forKeys: [remountKey]),
+               let remount = vals[remountKey] as? URL,
+               remount.host?.lowercased() == host,
+               remount.lastPathComponent.lowercased() == shareName { return v }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: poll)
+        return nil
     }
 
     static func mountedVolumes() -> [URL] {

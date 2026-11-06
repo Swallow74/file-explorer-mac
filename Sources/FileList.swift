@@ -342,6 +342,10 @@ struct ColumnHeader: View {
     var leading: CGFloat = 10
     var trailing: Bool = false
     @State private var hovering = false
+    /// Column drags read translation from gesture start, so the width at
+    /// grab time must be remembered; adding translation to the live value
+    /// each event compounds it.
+    @State private var dragBase: CGFloat?
     @ObservedObject private var prefs = Prefs.shared
 
     var body: some View {
@@ -381,7 +385,12 @@ struct ColumnHeader: View {
                 .contentShape(Rectangle())
                 .onHover { NSCursor.resizeLeftRight.set(); if !$0 { NSCursor.arrow.set() } }
                 .gesture(DragGesture()
-                    .onChanged { g in width = max(60, width + g.translation.width / 12) })
+                    .onChanged { g in
+                        let base = dragBase ?? width
+                        dragBase = base
+                        width = max(60, base + g.translation.width)
+                    }
+                    .onEnded { _ in dragBase = nil })
         }
     }
 }
@@ -506,7 +515,8 @@ struct RenameField: View {
                  selectStem: !item.isDirectory,
                  selectAll: item.isDirectory,
                  onCommit: { s in ex.commitRename(item, to: s) },
-                 onCancel: { ex.tab.editing = nil })
+                 onCancel: { ex.tab.editing = nil },
+                 commitOnBlur: true)
             .padding(.horizontal, 4)
             .background(WinRR(radius: 3).fill(Win.fieldFocus))
             .overlay(WinRR(radius: 3).stroke(Win.accent, lineWidth: 1))

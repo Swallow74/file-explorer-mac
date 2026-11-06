@@ -139,10 +139,13 @@ struct ShelfPane: View {
     private func collect(_ providers: [NSItemProvider], done: @escaping ([URL]) -> Void) {
         let group = DispatchGroup()
         var urls: [URL] = []
+        // Completions run concurrently on arbitrary queues; appending needs
+        // a lock, not just the group's ordering.
+        let lock = NSLock()
         for provider in providers where provider.canLoadObject(ofClass: URL.self) {
             group.enter()
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                if let url, url.isFileURL { urls.append(url) }
+                if let url, url.isFileURL { lock.withLock { urls.append(url) } }
                 group.leave()
             }
         }

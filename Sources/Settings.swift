@@ -374,15 +374,24 @@ final class Settings: ObservableObject {
         return nil
     }
 
-    /// Any other command already using this chord.
+    /// Any other command whose binding would swallow this chord's key events.
+    /// The runtime resolves bindings through matches(), which is broader than
+    /// equality (Cmd and Ctrl are one modifier, code chords match by keyCode,
+    /// char chords by character) — conflicts have to be judged the same way,
+    /// or a re-bind silently shadows an existing binding.
+    private func collides(_ a: KeyChord, _ b: KeyChord) -> Bool {
+        a.ctrl == b.ctrl && a.shift == b.shift && a.alt == b.alt &&
+            ((a.code != nil && a.code == b.code) || (a.char != nil && a.char == b.char))
+    }
+
     func conflict(for chord: KeyChord, excluding command: Command) -> Command? {
-        Command.allCases.first { $0 != command && chords(for: $0).contains(chord) }
+        Command.allCases.first { $0 != command && chords(for: $0).contains(where: { collides($0, chord) }) }
     }
 
     func setChord(_ chord: KeyChord, for command: Command) {
         if let other = conflict(for: chord, excluding: command) {
             var otherChords = chords(for: other)
-            otherChords.removeAll { $0 == chord }
+            otherChords.removeAll { collides($0, chord) }
             bindings[other.rawValue] = otherChords
         }
         bindings[command.rawValue] = [chord]

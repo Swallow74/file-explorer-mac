@@ -211,10 +211,13 @@ enum DropHandler {
     static func handle(providers: [NSItemProvider], into dest: URL, ex: Explorer) -> Bool {
         let group = DispatchGroup()
         var urls: [URL] = []
+        // The loadObject completions arrive on arbitrary background queues,
+        // possibly at the same time, so appends go through a lock.
+        let collect = NSLock()
         for p in providers where p.canLoadObject(ofClass: URL.self) {
             group.enter()
             _ = p.loadObject(ofClass: URL.self) { url, _ in
-                if let url, url.isFileURL { urls.append(url) }
+                if let url, url.isFileURL { collect.withLock { urls.append(url) } }
                 group.leave()
             }
         }
