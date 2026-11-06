@@ -28,9 +28,10 @@ if [ -z "$IDENTITY" ]; then
 fi
 echo "==> Signing as: $IDENTITY"
 
-./build.sh --universal
+FE_VERSION="$VERSION" ./build.sh --universal
 
-codesign --force --deep --options runtime --timestamp \
+# No nested code (one binary, no frameworks), so --deep is not needed.
+codesign --force --options runtime --timestamp \
     --sign "$IDENTITY" "$APP"
 codesign --verify --strict --verbose=2 "$APP"
 

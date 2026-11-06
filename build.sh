@@ -3,10 +3,17 @@
 set -e
 cd "$(dirname "$0")"
 
+command -v swiftc >/dev/null 2>&1 || {
+    echo "swiftc not found. Install the Xcode Command Line Tools:"
+    echo "    xcode-select --install"
+    exit 1
+}
+
 APP="build/File Explorer.app"
 NAME="File Explorer"
 BUNDLE_ID="com.winexplorer.mac"
-VERSION="1.0"
+# The release script stamps the real version through FE_VERSION.
+VERSION="${FE_VERSION:-1.0}"
 
 # Pass --universal to build a binary that also runs on Intel Macs.
 UNIVERSAL=0
@@ -20,6 +27,7 @@ compile() {  # <target-triple> <output>
     swiftc -O -whole-module-optimization -target "$1" Sources/*.swift -o "$2"
 }
 
+HOST_ARCH=$(uname -m)   # arm64 or x86_64; a plain build must run on the machine that builds it
 if [ "$UNIVERSAL" = "1" ]; then
     compile arm64-apple-macos14.0 build/FileExplorer-arm64
     compile x86_64-apple-macos14.0 build/FileExplorer-x86_64
@@ -28,7 +36,7 @@ if [ "$UNIVERSAL" = "1" ]; then
     rm -f build/FileExplorer-arm64 build/FileExplorer-x86_64
     echo "    universal: $(lipo -archs "$APP/Contents/MacOS/FileExplorer")"
 else
-    compile arm64-apple-macos14.0 "$APP/Contents/MacOS/FileExplorer"
+    compile "$HOST_ARCH-apple-macos14.0" "$APP/Contents/MacOS/FileExplorer"
 fi
 
 echo "==> Building icon"
@@ -79,6 +87,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 echo "==> Signing"
-codesign --force --deep --sign - "$APP" 2>/dev/null || echo "   (ad-hoc signing skipped)"
+# No nested code (one binary, no frameworks), so --deep is not needed.
+codesign --force --sign - "$APP" 2>/dev/null || echo "   (ad-hoc signing skipped)"
 
 echo "==> Done: $APP"
