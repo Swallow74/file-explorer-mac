@@ -28,19 +28,34 @@ enum Archives {
     }
 
     private static var cache: [String: (stamp: Date, entries: [ArchiveEntry])] = [:]
+    private static var cacheOrder: [String] = []
+    /// Archive listings run on the global concurrent queue (two panes can
+    /// browse archives at once), so the cache needs its own lock.
+    private static let cacheLock = NSLock()
 
     static func list(_ archive: URL) -> [ArchiveEntry] {
         let stamp = (try? archive.resourceValues(forKeys: [.contentModificationDateKey]))?
             .contentModificationDate ?? .distantPast
-        if let hit = cache[archive.path], hit.stamp == stamp { return hit.entries }
+        if let hit = cacheLock.withLock({ cache[archive.path] }), hit.stamp == stamp {
+            return hit.entries
+        }
 
-        let output = run(["/usr/bin/bsdtar", "-tvf", archive.path])
+        let output = run(["/usr/bin/bsdtar", "-tvf", archive.path]).output
         var entries: [ArchiveEntry] = []
         for line in output.split(separator: "\n") {
             guard let entry = parse(String(line)) else { continue }
             entries.append(entry)
         }
-        cache[archive.path] = (stamp, entries)
+        cacheLock.withLock {
+            cache[archive.path] = (stamp, entries)
+            // Keep the cache from growing without bound as the user browses
+            // archives across a long session.
+            cacheOrder.removeAll { $0 == archive.path }
+            cacheOrder.append(archive.path)
+            while cacheOrder.count > 12 {
+                cache.removeValue(forKey: cacheOrder.removeFirst())
+            }
+        }
         return entries
     }
 
@@ -129,9 +144,34 @@ enum Archives {
     static func extract(_ archive: URL, entries: [String], to destination: URL) -> String? {
         try? FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
         var arguments = ["/usr/bin/bsdtar", "-x", "-f", archive.path, "-C", destination.path]
-        arguments += entries
-        let output = run(arguments)
-        return output.contains("Error") ? output : nil
+        if !entries.isEmpty {
+            // Entry names come out of the archive, so they are untrusted: `--`
+            // stops one that starts with a dash from becoming a bsdtar option
+            // (`-P` would allow paths that escape the destination), and the
+            // escaping stops glob characters from matching more than the user
+            // selected. bsdtar's own default sanitising of `..` stays on.
+            arguments.append("--")
+            arguments += entries.map(literalPattern)
+        }
+        let result = run(arguments)
+        // The exit status, not the wording: an entry named "Error_report.txt"
+        // would doom a contains("Error") check, and out-of-space failures do
+        // not always print the word.
+        return result.status != 0 ? result.output : nil
+    }
+
+    /// Turns a member name into a pattern that matches exactly that name, by
+    /// bracketing each character bsdtar's matcher treats as special.
+    private static func literalPattern(_ entry: String) -> String {
+        var out = ""
+        for ch in entry {
+            switch ch {
+            case "*", "?", "[", "{": out.append("[\(ch)]")
+            case "\\":               out.append("\\\\")
+            default:                 out.append(ch)
+            }
+        }
+        return out
     }
 
     /// Pulls one file out to a scratch folder so it can be opened.
@@ -154,16 +194,18 @@ enum Archives {
     }
 
     @discardableResult
-    private static func run(_ arguments: [String]) -> String {
+    private static func run(_ arguments: [String]) -> (status: Int32, output: String) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: arguments[0])
         process.arguments = Array(arguments.dropFirst())
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
-        do { try process.run() } catch { return "Error: \(error.localizedDescription)" }
+        do { try process.run() } catch {
+            return (1, "Error: \(error.localizedDescription)")
+        }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
-        return String(data: data, encoding: .utf8) ?? ""
+        return (process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
     }
 }

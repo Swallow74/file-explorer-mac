@@ -212,11 +212,31 @@ enum SelfTest {
                 check("the queued cut and paste moved the file",
                       fm.fileExists(atPath: sub.appendingPathComponent("beta.txt").path)
                       && !fm.fileExists(atPath: root.appendingPathComponent("beta.txt").path))
-                ex.undo()
-                check("Ctrl+Z undoes a queued move",
-                      fm.fileExists(atPath: root.appendingPathComponent("beta.txt").path))
-                checkCustomCommand(ex: ex, root: root) {
-                    checkTransfers(root: root, sub: sub) { finish() }
+                // Undo the last action the stack can be known to hold: one
+                // fresh queued move, drained, then one undo. Earlier pushes
+                // from the script interleave at nondeterministic moments.
+                let gamma = root.appendingPathComponent("gamma.txt")
+                fm.createFile(atPath: gamma.path, contents: Data("g".utf8))
+                ex.go(to: root)
+                let tail = {
+                    checkCustomCommand(ex: ex, root: root) {
+                        checkTransfers(root: root, sub: sub) { finish() }
+                    }
+                }
+                if let item = ex.tab.items.first(where: { $0.name == "gamma.txt" }) {
+                    ex.select(item, extend: false, toggle: false)
+                    send(ex, "x", ctrl: true)
+                    ex.go(to: sub)
+                    send(ex, "v", ctrl: true)
+                    afterTransfers {
+                        ex.undo()
+                        check("Ctrl+Z undoes a queued move",
+                              fm.fileExists(atPath: root.appendingPathComponent("gamma.txt").path))
+                        tail()
+                    }
+                } else {
+                    check("Ctrl+Z undoes a queued move", false)
+                    tail()
                 }
             }
         }
@@ -245,8 +265,21 @@ enum SelfTest {
                 check("the move is recorded for undo", moveJob.moved.count == 1)
                 check("the file is gone from the source",
                       !fm.fileExists(atPath: moving.path))
-                try? fm.removeItem(at: root)
-                done()
+
+                // Without the containment guard this recursion would fill the
+                // disk instead of failing: a folder copied into itself.
+                let pack = root.appendingPathComponent("pack")
+                try? fm.createDirectory(at: pack, withIntermediateDirectories: true)
+                fm.createFile(atPath: pack.appendingPathComponent("note.txt").path,
+                              contents: Data("note".utf8))
+                queue.enqueue(kind: .copy, sources: [pack], to: pack) { selfJob in
+                    var refused = false
+                    if case .failed(let message) = selfJob.state { refused = message.contains("into itself") }
+                    check("copying a folder into itself is refused, not looped",
+                          refused && !fm.fileExists(atPath: pack.appendingPathComponent("pack").path))
+                    try? fm.removeItem(at: root)
+                    done()
+                }
             }
         }
         // The queue marks itself busy the moment work is handed over.
@@ -459,14 +492,57 @@ enum SelfTest {
         let failure = Archives.extract(archive, entries: [], to: destination)
         check("an archive extracts", failure == nil
               && FileManager.default.fileExists(atPath: destination.appendingPathComponent("alpha.txt").path))
+
+        // A zip whose entry names are weapons: `-P` turns into a bsdtar option
+        // unless it is separated from the arguments, and only that option lets
+        // `../evil.txt` escape the extraction folder; `a*.txt` is a glob that
+        // also swallows `ax.txt` unless it is escaped. Generated with Python's
+        // zipfile, all four entries stored, 395 bytes.
+        let hostileBase64 = """
+        UEsDBBQAAAAAANC9Zl1SMfuNBAAAAAQAAAALAAAALi4vZXZpbC50eHRldmlsUEsDBBQAAAAAANC9Zl0s
+        EsRhAwAAAAMAAAACAAAALVBwd25QSwMEFAAAAAAA0L1mXWjqG7AHAAAABwAAAAYAAABhKi50eHRzdGFy
+        cmVkUEsDBBQAAAAAANC9Zl3PYiAZBQAAAAUAAAAGAAAAYXgudHh0cGxhaW5QSwECFAMUAAAAAADQvWZd
+        UjH7jQQAAAAEAAAACwAAAAAAAAAAAAAAgAEAAAAALi4vZXZpbC50eHRQSwECFAMUAAAAAADQvWZdLBLE
+        YQMAAAADAAAAAgAAAAAAAAAAAAAAgAEtAAAALVBQSwECFAMUAAAAAADQvWZdaOobsAcAAAAHAAAABgAA
+        AAAAAAAAAAAAAgAFQAAAAYSoudHh0UEsBAhQDFAAAAAAA0L1mXc9iIBkFAAAABQAAAAYAAAAAAAAAAAAA
+        AIABewAAAGF4LnR4dFBLBQYAAAAABAAEANEAAACkAAAAAAA=
+        """
+        if let hostileData = Data(base64Encoded: hostileBase64.replacingOccurrences(of: "\n", with: "")) {
+            let hostile = root.appendingPathComponent("hostile.zip")
+            try? hostileData.write(to: hostile)
+            let dest = root.appendingPathComponent("hostile-out")
+            _ = Archives.extract(hostile, entries: ["-P"], to: dest)
+            check("an entry named like an option is extracted as a file",
+                  FileManager.default.fileExists(atPath: dest.appendingPathComponent("-P").path))
+            check("a crafted archive cannot escape the extraction folder",
+                  !FileManager.default.fileExists(atPath: root.appendingPathComponent("evil.txt").path))
+            let globDest = root.appendingPathComponent("glob-out")
+            _ = Archives.extract(hostile, entries: ["a*.txt"], to: globDest)
+            check("selecting one file extracts that file and not its glob matches",
+                  FileManager.default.fileExists(atPath: globDest.appendingPathComponent("a*.txt").path)
+                  && !FileManager.default.fileExists(atPath: globDest.appendingPathComponent("ax.txt").path))
+        } else {
+            check("the hostile test archive decodes", false)
+        }
     }
 
     private static func checkCompare(root: URL, sub: URL) {
-        let entries = FolderCompare.run(left: root, right: sub)
+        // Own scratch trees: the shared folders receive queued copies at
+        // nondeterministic moments, which must not decide the outcome.
+        let fm = FileManager.default
+        let left = root.appendingPathComponent("cmp-left")
+        let right = root.appendingPathComponent("cmp-right")
+        try? fm.createDirectory(at: left.appendingPathComponent("nested"), withIntermediateDirectories: true)
+        try? fm.createDirectory(at: right, withIntermediateDirectories: true)
+        fm.createFile(atPath: left.appendingPathComponent("solo.txt").path, contents: Data("s".utf8))
+        fm.createFile(atPath: right.appendingPathComponent("other.txt").path, contents: Data("o".utf8))
+        fm.createFile(atPath: left.appendingPathComponent("nested/deep.txt").path, contents: Data("d".utf8))
+        let entries = FolderCompare.run(left: left, right: right)
         check("comparing folders reports what is only on one side",
-              entries.contains { $0.relativePath == "alpha.txt" && $0.status == .onlyLeft })
+              entries.contains { $0.relativePath == "solo.txt" && $0.status == .onlyLeft }
+              && entries.contains { $0.relativePath == "other.txt" && $0.status == .onlyRight })
         check("comparing folders walks into subfolders",
-              entries.contains { $0.relativePath.contains("/") } || entries.count > 1)
+              entries.contains { $0.relativePath == "nested/deep.txt" })
     }
 
     private static func checkShelf(root: URL) {

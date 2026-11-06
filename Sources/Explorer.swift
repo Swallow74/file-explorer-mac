@@ -162,29 +162,6 @@ enum Ops {
         }
     }
 
-    @discardableResult
-    static func copyItems(_ urls: [URL], to dir: URL) throws -> [URL] {
-        var created: [URL] = []
-        for u in urls {
-            let sameDir = u.deletingLastPathComponent().path == dir.path
-            let dest = uniqueURL(for: u.lastPathComponent, in: dir, copySuffix: sameDir)
-            try fm.copyItem(at: u, to: dest)
-            created.append(dest)
-        }
-        return created
-    }
-
-    @discardableResult
-    static func moveItems(_ urls: [URL], to dir: URL) throws -> [(from: URL, to: URL)] {
-        var moved: [(URL, URL)] = []
-        for u in urls where u.deletingLastPathComponent().path != dir.path {
-            let dest = uniqueURL(for: u.lastPathComponent, in: dir, copySuffix: false)
-            try fm.moveItem(at: u, to: dest)
-            moved.append((u, dest))
-        }
-        return moved
-    }
-
     static func trash(_ urls: [URL]) -> [(original: URL, trashed: URL)] {
         var out: [(URL, URL)] = []
         for u in urls {
@@ -230,16 +207,22 @@ enum Ops {
         }
     }
 
-    static func zip(_ urls: [URL], in dir: URL) {
-        guard let first = urls.first else { return }
+    @discardableResult
+    static func zip(_ urls: [URL], in dir: URL) -> URL? {
+        guard let first = urls.first else { return nil }
         let base = urls.count == 1 ? first.deletingPathExtension().lastPathComponent : "Archive"
         let dest = uniqueURL(for: base + ".zip", in: dir, copySuffix: false)
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
         p.currentDirectoryURL = dir
-        p.arguments = ["-r", "-q", dest.lastPathComponent] + urls.map(\.lastPathComponent)
-        try? p.run()
+        // Working inside dir, the "./" prefix stops a file whose name begins
+        // with a dash from being parsed as a zip option; zip strips it again
+        // when it stores the entry names.
+        p.arguments = ["-r", "-q", "./" + dest.lastPathComponent]
+            + urls.map { "./" + $0.lastPathComponent }
+        do { try p.run() } catch { return nil }
         p.waitUntilExit()
+        return p.terminationStatus == 0 ? dest : nil
     }
 
     static func folderSize(_ url: URL) -> (bytes: Int64, files: Int, folders: Int) {
@@ -315,6 +298,20 @@ final class Explorer: ObservableObject {
 
     func reload() {
         let loc = tab.location
+        // Listing an archive spawns bsdtar, which can take seconds on a large
+        // archive, so it runs off the main thread. Every other location is a
+        // plain directory read and stays synchronous.
+        if case .archive(let archive, let inner) = loc {
+            let tabID = tab.id
+            var t = tab
+            t.items = []
+            tab = t
+            DispatchQueue.global(qos: .userInitiated).async {
+                let children = Archives.children(of: archive, at: inner)
+                DispatchQueue.main.async { self.apply(children, toTab: tabID, expecting: loc) }
+            }
+            return
+        }
         var items: [FileItem] = []
         switch loc {
         case .home:
@@ -330,13 +327,22 @@ final class Explorer: ObservableObject {
             items = Loader.contents(of: Places.trash, showHidden: prefs.showHidden)
         case .folder(let url):
             items = Loader.contents(of: url, showHidden: prefs.showHidden)
-        case .archive(let archive, let inner):
-            items = Archives.children(of: archive, at: inner)
+        case .archive:
+            break  // handled above
         }
+        apply(items, toTab: tab.id, expecting: loc)
+    }
+
+    /// Filters, sorts and installs a freshly listed set of items, unless the
+    /// tab has moved on to another location in the meantime.
+    private func apply(_ raw: [FileItem], toTab id: UUID, expecting loc: Location) {
+        guard let i = tabs.firstIndex(where: { $0.id == id }), tabs[i].location == loc else { return }
+        var items = raw
         if let f = filterKind { items = items.filter { matchesFilter($0, f) } }
-        tab.items = Loader.sort(items, by: prefs.sortKey, ascending: prefs.sortAscending)
-        tab.selection = tab.selection.filter { p in tab.items.contains { $0.id == p } }
-        watchCurrentFolder()
+        items = Loader.sort(items, by: prefs.sortKey, ascending: prefs.sortAscending)
+        tabs[i].items = items
+        tabs[i].selection = tabs[i].selection.filter { p in items.contains { $0.id == p } }
+        if tabs[i].id == tab.id { watchCurrentFolder() }
     }
 
     private func matchesFilter(_ item: FileItem, _ filter: String) -> Bool {
@@ -450,10 +456,19 @@ final class Explorer: ObservableObject {
             let entry = inner.isEmpty ? item.name : inner + "/" + item.name
             if item.isDirectory {
                 go(to: .archive(archive, entry))
-            } else if let staged = Archives.stage(archive, entry: entry) {
-                NSWorkspace.shared.open(staged)
             } else {
-                sheet = .error("Could not extract “\(item.name)” from the archive.")
+                // Extracting a single file still spawns bsdtar; keep it off
+                // the main thread so the window never freezes mid-open.
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let staged = Archives.stage(archive, entry: entry)
+                    DispatchQueue.main.async {
+                        if let staged {
+                            NSWorkspace.shared.open(staged)
+                        } else {
+                            self.sheet = .error("Could not extract “\(item.name)” from the archive.")
+                        }
+                    }
+                }
             }
             return
         }
@@ -523,7 +538,7 @@ final class Explorer: ObservableObject {
             return
         }
         tabs.remove(at: idx)
-        active = min(active, tabs.count - 1)
+        if idx < active { active -= 1 } else { active = min(active, tabs.count - 1) }
         reload()
     }
 
@@ -532,8 +547,6 @@ final class Explorer: ObservableObject {
     func selectTab(_ i: Int) { guard i < tabs.count else { return }; active = i; reload() }
 
     // MARK: Selection
-
-    var displayedItems: [FileItem] { tab.searching ? tab.items : tab.items }
 
     var selectedItems: [FileItem] { tab.items.filter { tab.selection.contains($0.id) } }
 
@@ -645,19 +658,29 @@ final class Explorer: ObservableObject {
         let urls = Clipboard.urls
         guard !urls.isEmpty else { NSSound.beep(); return }
         let cutting = Clipboard.isCut
-        if cutting { Clipboard.clearCut() }
-        transfer(kind: cutting ? .move : .copy, sources: urls, to: dir)
+        // The cut marker is only cleared once the move has actually landed.
+        // Clearing it up front meant a failed move (locked volume, permissions)
+        // left the user with an empty pasteboard and no way to retry.
+        transfer(kind: cutting ? .move : .copy, sources: urls, to: dir) { landed in
+            if cutting && landed { Clipboard.clearCut() }
+        }
     }
 
     /// Hands a copy or move to the background queue and folds the result into
     /// the undo stack once it lands.
-    func transfer(kind: TransferJob.Kind, sources: [URL], to destination: URL) {
+    func transfer(kind: TransferJob.Kind, sources: [URL], to destination: URL,
+                  onSettled: ((Bool) -> Void)? = nil) {
         TransferQueue.shared.enqueue(kind: kind, sources: sources, to: destination) { [weak self] job in
             guard let self else { return }
+            var succeeded = false
             switch job.state {
             case .failed(let message):
+                // A failed cross-volume move can still have left the copy
+                // behind; make that copy undoable rather than untracked.
+                if !job.created.isEmpty { self.push(.copy(created: job.created)) }
                 self.sheet = .error(message)
             case .finished:
+                succeeded = true
                 if !job.moved.isEmpty { self.push(.move(items: job.moved)) }
                 if !job.created.isEmpty { self.push(.copy(created: job.created)) }
             default:
@@ -668,6 +691,7 @@ final class Explorer: ObservableObject {
             if !landed.isEmpty {
                 self.tab.selection = Set(self.tab.items.filter { landed.contains($0.name) }.map(\.id))
             }
+            onSettled?(succeeded)
         }
     }
 
@@ -766,8 +790,21 @@ final class Explorer: ObservableObject {
         guard let dir = currentDirectory else { return }
         let sel = selectedItems
         guard !sel.isEmpty else { return }
-        Ops.zip(sel.map(\.url), in: dir)
-        reload()
+        let urls = sel.map(\.url)
+        // Zipping a big folder runs the system's zip to completion, so it
+        // belongs on the queue, not on the main thread.
+        flash("Zipping \(sel.count) item\(sel.count == 1 ? "" : "s")")
+        DispatchQueue.global(qos: .userInitiated).async {
+            let created = Ops.zip(urls, in: dir)
+            DispatchQueue.main.async {
+                if let created {
+                    self.reload()
+                    self.flash("Created \(created.lastPathComponent)")
+                } else {
+                    self.sheet = .error("Could not create the zip archive.")
+                }
+            }
+        }
     }
 
     func showProperties() {
@@ -789,38 +826,106 @@ final class Explorer: ObservableObject {
 
     func undo() {
         guard let a = undoStack.popLast() else { NSSound.beep(); return }
+        var failures = 0
+        var redoAction: UndoAction?
+
         switch a {
         case .rename(let from, let to):
-            _ = try? Ops.rename(to, to: from.lastPathComponent)
+            if (try? Ops.rename(to, to: from.lastPathComponent)) != nil { redoAction = a }
+            else { failures += 1 }
         case .move(let items):
-            for m in items.reversed() { try? Ops.fm.moveItem(at: m.to, to: m.from) }
+            var reverted: [(from: URL, to: URL)] = []
+            for m in items.reversed()
+                where (try? Ops.fm.moveItem(at: m.to, to: m.from)) != nil {
+                reverted.append(m)
+            }
+            failures = items.count - reverted.count
+            if reverted.count == items.count { redoAction = a }
+            else if !reverted.isEmpty { redoAction = .move(items: reverted) }
         case .create(let url):
-            _ = Ops.trash([url])
+            // Trash the item with everything the user put inside it, so redo
+            // restores the same contents rather than recreating it empty.
+            let trashed = Ops.trash([url])
+            if let pair = trashed.first { redoAction = .trash(items: [pair]) }
+            else { failures += 1 }
         case .trash(let items):
-            for i in items.reversed() { try? Ops.fm.moveItem(at: i.trashed, to: i.original) }
+            var restored: [(original: URL, trashed: URL)] = []
+            for i in items.reversed()
+                where (try? Ops.fm.moveItem(at: i.trashed, to: i.original)) != nil {
+                restored.append(i)
+            }
+            failures = items.count - restored.count
+            if restored.count == items.count { redoAction = a }
+            else if !restored.isEmpty { redoAction = .trash(items: restored) }
         case .copy(let created):
-            _ = Ops.trash(created)
+            let trashed = Ops.trash(created)
+            failures = created.count - trashed.count
+            if !trashed.isEmpty { redoAction = .trash(items: trashed) }
         }
-        redoStack.append(a)
-        reload()
+
+        if let redoAction { redoStack.append(redoAction) }
+        if failures > 0 {
+            sheet = .error("\(failures) item\(failures == 1 ? " could" : "s could") not be reverted — the original path is occupied or gone.")
+        }
+        reloadTabsTouchedBy(a)
         flash("Undo \(a.label)")
     }
 
     func redo() {
         guard let a = redoStack.popLast() else { NSSound.beep(); return }
+        var failures = 0
+        var undoAction: UndoAction?
+
         switch a {
         case .rename(let from, let to):
-            _ = try? Ops.rename(from, to: to.lastPathComponent)
+            if (try? Ops.rename(from, to: to.lastPathComponent)) != nil { undoAction = a }
+            else { failures += 1 }
         case .move(let items):
-            for m in items { try? Ops.fm.moveItem(at: m.from, to: m.to) }
+            var applied: [(from: URL, to: URL)] = []
+            for m in items where (try? Ops.fm.moveItem(at: m.from, to: m.to)) != nil {
+                applied.append(m)
+            }
+            failures = items.count - applied.count
+            if applied.count == items.count { undoAction = a }
+            else if !applied.isEmpty { undoAction = .move(items: applied) }
         case .create(let url):
-            if url.pathExtension.isEmpty { try? Ops.fm.createDirectory(at: url, withIntermediateDirectories: true) }
-            else { Ops.fm.createFile(atPath: url.path, contents: nil) }
+            let recreated = url.pathExtension.isEmpty
+                ? (try? Ops.fm.createDirectory(at: url, withIntermediateDirectories: true)) != nil
+                : Ops.fm.createFile(atPath: url.path, contents: nil)
+            if recreated { undoAction = a } else { failures += 1 }
         case .trash(let items):
-            _ = Ops.trash(items.map(\.original))
+            let again = Ops.trash(items.map(\.original))
+            failures = items.count - again.count
+            if !again.isEmpty { undoAction = .trash(items: again) }
         case .copy: break
         }
-        undoStack.append(a)
+
+        if let undoAction { undoStack.append(undoAction) }
+        if failures > 0 {
+            sheet = .error("\(failures) item\(failures == 1 ? " was" : "s were") not reapplied — something occupies the target now.")
+        }
+        reloadTabsTouchedBy(a)
+    }
+
+    /// Undo and redo change folders the active tab may not even be showing;
+    /// refresh every tab of this pane that has one of the touched folders open.
+    private func reloadTabsTouchedBy(_ a: UndoAction) {
+        var dirs: Set<String> = []
+        func touch(_ u: URL) { dirs.insert(u.deletingLastPathComponent().standardizedFileURL.path) }
+        switch a {
+        case .rename(let from, let to): touch(from); touch(to)
+        case .move(let items): for m in items { touch(m.from); touch(m.to) }
+        case .create(let url): touch(url)
+        case .trash(let items): for i in items { touch(i.original); touch(i.trashed) }
+        case .copy(let created): for u in created { touch(u) }
+        }
+        let activeID = tab.id
+        for i in tabs.indices {
+            guard tabs[i].id != activeID, let u = tabs[i].location.url,
+                  dirs.contains(u.standardizedFileURL.path) else { continue }
+            let items = Loader.contents(of: u, showHidden: prefs.showHidden)
+            apply(items, toTab: tabs[i].id, expecting: tabs[i].location)
+        }
         reload()
     }
 

@@ -60,6 +60,7 @@ final class TransferQueue: ObservableObject {
 
     private let worker = DispatchQueue(label: "com.winexplorer.transfers", qos: .userInitiated)
     private var cancelled = Set<UUID>()
+    private let cancelLock = NSLock()
     private var completion: [UUID: (TransferJob) -> Void] = [:]
     private var running = false
 
@@ -91,9 +92,12 @@ final class TransferQueue: ObservableObject {
     }
 
     func cancel(_ id: UUID) {
-        cancelled.insert(id)
+        cancelLock.withLock { cancelled.insert(id) }
         if let i = jobs.firstIndex(where: { $0.id == id }), jobs[i].state == .waiting {
             jobs[i].state = .cancelled
+            // A waiting job that never runs would otherwise leave its
+            // completion closure — and everything it captures — in the dict.
+            completion.removeValue(forKey: id)?(jobs[i])
         }
     }
 
@@ -131,9 +135,10 @@ final class TransferQueue: ObservableObject {
     }
 
     private func isCancelled(_ id: UUID) -> Bool {
-        var result = false
-        DispatchQueue.main.sync { result = self.cancelled.contains(id) }
-        return result
+        // Checked in the copy loop, once per megabyte and per directory
+        // child: a synchronous hop to the main thread here both janks the
+        // UI and deadlocks if main is ever blocked on a modal panel.
+        cancelLock.withLock { cancelled.contains(id) }
     }
 
     private func update(_ id: UUID, _ change: @escaping (inout TransferJob) -> Void) {
@@ -147,11 +152,14 @@ final class TransferQueue: ObservableObject {
         var job = job
         let fm = FileManager.default
 
-        // Measure first so the progress bar means something.
+        // Measure first so the progress bar means something; keep the
+        // per-source sizes so a same-volume rename advances it accurately.
         var totalBytes: Int64 = 0
         var totalFiles = 0
+        var perSource: [(bytes: Int64, files: Int)] = []
         for url in job.sources {
             let (bytes, files) = Transfers.measure(url)
+            perSource.append((bytes, files))
             totalBytes += bytes
             totalFiles += files
         }
@@ -159,8 +167,20 @@ final class TransferQueue: ObservableObject {
         job.filesTotal = totalFiles
         update(job.id) { $0.bytesTotal = totalBytes; $0.filesTotal = totalFiles }
 
-        for source in job.sources {
+        for (index, source) in job.sources.enumerated() {
             if isCancelled(job.id) { job.state = .cancelled; return job }
+
+            // A folder cannot be taken inside itself. Windows refuses with the
+            // same message; without this the same-volume move fails in rename(2)
+            // but a copy would recurse until the disk filled.
+            if job.kind != .delete, let destination = job.destination {
+                let src = source.standardizedFileURL.path
+                let dst = destination.standardizedFileURL.path
+                if dst == src || dst.hasPrefix(src + "/") {
+                    job.state = .failed("You can't move or copy “\(source.lastPathComponent)” into itself.")
+                    return job
+                }
+            }
 
             do {
                 switch job.kind {
@@ -176,24 +196,34 @@ final class TransferQueue: ObservableObject {
                     if Transfers.sameVolume(source, destination) {
                         try fm.moveItem(at: source, to: target)
                         job.moved.append((source, target))
-                        job.bytesDone = job.bytesTotal
-                        job.filesDone = job.filesTotal
+                        job.bytesDone += perSource[index].bytes
+                        job.filesDone += perSource[index].files
                         update(job.id) {
-                            $0.bytesDone = $0.bytesTotal
-                            $0.filesDone = $0.filesTotal
+                            $0.bytesDone = job.bytesDone
+                            $0.filesDone = job.filesDone
                             $0.currentName = source.lastPathComponent
                         }
                     } else {
                         try copyTree(source, to: target, job: &job)
-                        try fm.removeItem(at: source)
-                        job.moved.append((source, target))
+                        do {
+                            try fm.removeItem(at: source)
+                            job.moved.append((source, target))
+                        } catch {
+                            // The copy landed but the original refused to go.
+                            // Record the copy as created, so the undo stack can
+                            // delete it, instead of leaving it untracked.
+                            job.created.append(target)
+                            job.state = .failed("Copied “\(source.lastPathComponent)” but could not delete the original: \(error.localizedDescription)")
+                            return job
+                        }
                     }
 
                 case .copy:
                     guard let destination = job.destination else { continue }
-                    let sameDir = source.deletingLastPathComponent().path == destination.path
+                    // Windows names every copy collision "name - Copy", not
+                    // just the ones landing in the source's own folder.
                     let target = Ops.uniqueURL(for: source.lastPathComponent,
-                                               in: destination, copySuffix: sameDir)
+                                               in: destination, copySuffix: true)
                     try copyTree(source, to: target, job: &job)
                     job.created.append(target)
                 }
