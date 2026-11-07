@@ -456,6 +456,43 @@ final class Explorer: ObservableObject {
 
     func go(to url: URL, newTab: Bool = false) { go(to: .folder(url), newTab: newTab) }
 
+    func duplicateTab(_ i: Int) {
+        guard tabs.indices.contains(i) else { return }
+        openTab(tabs[i].location)
+    }
+
+    /// Paste into another tab's folder without leaving the current one.
+    /// The transfer lands on the destination folder, the tab refreshes, and
+    /// the undo history stays with the pane that started it.
+    func paste(toTabAt i: Int) {
+        guard tabs.indices.contains(i), case .folder(let dir) = tabs[i].location else {
+            NSSound.beep(); return
+        }
+        let urls = Clipboard.urls
+        guard !urls.isEmpty else { NSSound.beep(); return }
+        let cutting = Clipboard.isCut
+        let destTab = tabs[i].id
+        let destLoc = tabs[i].location
+        TransferQueue.shared.enqueue(kind: cutting ? .move : .copy, sources: urls, to: dir) { [weak self] job in
+            guard let self else { return }
+            switch job.state {
+            case .failed(let message):
+                if !job.created.isEmpty { self.push(.copy(created: job.created)) }
+                self.sheet = .error(message)
+            case .finished:
+                if !job.moved.isEmpty { self.push(.move(items: job.moved)) }
+                if !job.created.isEmpty { self.push(.copy(created: job.created)) }
+                if cutting { Clipboard.clearCut() }
+            default: break
+            }
+            guard let j = self.tabs.firstIndex(where: { $0.id == destTab }),
+                  self.tabs[j].location == destLoc, case .folder(let u) = destLoc else { return }
+            if j == self.active { self.reload() }
+            else { self.apply(Loader.contents(of: u, showHidden: self.prefs.showHidden),
+                              toTab: destTab, expecting: destLoc) }
+        }
+    }
+
     func back() {
         guard tab.canGoBack else { NSSound.beep(); return }
         tab.index -= 1; tab.selection = []; tab.searching = false; tab.search = ""

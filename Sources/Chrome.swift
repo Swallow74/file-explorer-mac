@@ -16,7 +16,12 @@ struct TitleBar: View {
                             active: idx == ex.active,
                             showClose: ex.tabs.count > 1 || idx == ex.active,
                             onSelect: { ex.selectTab(idx) },
-                            onClose: { ex.closeTab(idx) })
+                            onClose: { ex.closeTab(idx) },
+                            onContext: { point in
+                                menus.show(id: "tab-\(idx)-\(t.id)", anchor: .zero,
+                                           entries: tabMenu(idx), width: 220,
+                                           iconRow: nil, point: point)
+                            })
                 }
                 WinButton(tooltip: "New tab (Ctrl+T)", padding: 8, height: 28, corner: 4) {
                     ex.openTab()
@@ -45,6 +50,23 @@ struct TitleBar: View {
             zoomed = NSApp.keyWindow?.isZoomed ?? false
         }
     }
+
+    /// Windows 11 gives tabs a Duplicate/Close menu; Paste to tab is the
+    /// MaXplorer move — drop files into a folder you keep open elsewhere
+    /// without leaving this one.
+    private func tabMenu(_ i: Int) -> [MenuEntry] {
+        let isFolder: Bool
+        if case .folder = ex.tabs[i].location { isFolder = true } else { isFolder = false }
+        return [
+            MenuEntry(title: "Duplicate tab", icon: .copy) { ex.duplicateTab(i) },
+            MenuEntry(title: "Paste to tab", icon: .paste,
+                      enabled: !Clipboard.urls.isEmpty && isFolder) {
+                ex.paste(toTabAt: i)
+            },
+            .sep(),
+            MenuEntry(title: "Close tab", shortcut: "Ctrl+W") { ex.closeTab(i) },
+        ]
+    }
 }
 
 struct TabChip: View {
@@ -54,6 +76,7 @@ struct TabChip: View {
     let showClose: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
+    var onContext: (CGPoint) -> Void = { _ in }
     @State private var hovering = false
 
     var body: some View {
@@ -91,6 +114,7 @@ struct TabChip: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture(perform: onSelect)
+        .onRightClick(perform: onContext)
     }
 }
 
