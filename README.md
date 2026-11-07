@@ -225,6 +225,7 @@ Sources/
   FileIcons.swift      Folder and file-type artwork, Quick Look thumbnails
   Model.swift          FileItem, Windows metadata formatting, known folders
   Explorer.swift       Tabs, history, selection, clipboard, file ops, undo, search
+  QuickLook.swift      Space-bar Quick Look preview panel
   Grouping.swift       The "Group by" buckets and their Windows labels
   Settings.swift       Re-mappable shortcuts, theme, folder icons, pinning
   WindowModel.swift    One or two panes per window
