@@ -52,8 +52,9 @@ enum Win {
     /// Subtle button states (toolbar buttons, list rows).
     static let subtleHover  = dyn(c(0xFFFFFF, 0.061), c(0x000000, 0.037))
     static let subtlePress  = dyn(c(0xFFFFFF, 0.042), c(0x000000, 0.024))
-    static let selected     = dyn(c(0xFFFFFF, 0.087), c(0x000000, 0.060))
-    static let selectedHover = dyn(c(0xFFFFFF, 0.11), c(0x000000, 0.086))
+    /// Selected rows carry the accent, so they stay distinct from the grey hover.
+    static var selected: Color { accent.opacity(0.24) }
+    static var selectedHover: Color { accent.opacity(0.32) }
 
     // MARK: - Strokes
 
