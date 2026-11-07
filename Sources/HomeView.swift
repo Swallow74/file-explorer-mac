@@ -11,7 +11,7 @@ struct HomeView: View {
     var body: some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 0) {
-                SectionHeader(title: "Quick access", expanded: $quickExpanded)
+                SectionHeader(title: tr("Quick access"), expanded: $quickExpanded)
                     .padding(.top, 10)
 
                 if quickExpanded {
@@ -36,9 +36,9 @@ struct HomeView: View {
                     .buttonStyle(.plain)
                     .hoverFill()
 
-                    Pill(title: "Recent", icon: .clock, selected: recentTab == 0) { recentTab = 0 }
-                    Pill(title: "Favorites", icon: .star, selected: recentTab == 1) { recentTab = 1 }
-                    Pill(title: "Shared", icon: .people, selected: recentTab == 2) { recentTab = 2 }
+                    Pill(title: tr("Recent"), icon: .clock, selected: recentTab == 0) { recentTab = 0 }
+                    Pill(title: tr("Favorites"), icon: .star, selected: recentTab == 1) { recentTab = 1 }
+                    Pill(title: tr("Shared"), icon: .people, selected: recentTab == 2) { recentTab = 2 }
                 }
                 .padding(.leading, 8)
                 .padding(.top, 20)
@@ -164,7 +164,7 @@ struct QuickTile: View {
             return "OneDrive"
         }
         let parent = url.deletingLastPathComponent()
-        if parent.path == Places.home.path { return "Stored locally" }
+        if parent.path == Places.home.path { return tr("Stored locally") }
         return "\(Places.displayName(for: parent))\\\(url.lastPathComponent)"
     }
 }
@@ -192,16 +192,16 @@ struct RecentTable: View {
     private func table(columns: RecentColumns) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
-                Text("Name")
+                Text(tr("Name"))
                     .frame(width: columns.name, alignment: .leading).padding(.leading, 40)
                 if let width = columns.date {
-                    Text("Date accessed").frame(width: width, alignment: .leading)
+                    Text(tr("Date accessed")).frame(width: width, alignment: .leading)
                 }
                 if let width = columns.account {
-                    Text("Account").frame(width: width, alignment: .leading)
+                    Text(tr("Account")).frame(width: width, alignment: .leading)
                 }
                 if let width = columns.activity {
-                    Text("Activity").frame(width: width, alignment: .leading)
+                    Text(tr("Activity")).frame(width: width, alignment: .leading)
                 }
                 Spacer(minLength: 0)
             }
@@ -213,7 +213,7 @@ struct RecentTable: View {
             Divider().overlay(Win.divider).padding(.horizontal, 12)
 
             if rows.isEmpty {
-                Text(tab == 2 ? "No shared files." : "No recent files.")
+                Text(tab == 2 ? tr("No shared files.") : tr("No recent files."))
                     .font(Win.body(12)).foregroundStyle(Win.textTertiary)
                     .padding(.horizontal, 52).padding(.vertical, 16)
             } else {
@@ -292,16 +292,16 @@ struct RecentRow: View {
         .onTapGesture(count: 1) { ex.open(item) }
         .onRightClick { p in
             menus.show(id: "recent", anchor: .zero, entries: [
-                MenuEntry(title: "Open", icon: .openWith) { ex.open(item) },
-                MenuEntry(title: "Open file location", icon: .folderOutline) {
+                MenuEntry(title: tr("Open"), icon: .openWith) { ex.open(item) },
+                MenuEntry(title: tr("Open file location"), icon: .folderOutline) {
                     ex.go(to: item.url.deletingLastPathComponent())
                 },
                 .sep(),
-                MenuEntry(title: "Copy as path", icon: .copy) {
+                MenuEntry(title: tr("Copy as path"), icon: .copy) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(item.url.path, forType: .string)
                 },
-                MenuEntry(title: "Properties", icon: .properties) { ex.sheet = .properties([item]) },
+                MenuEntry(title: tr("Properties"), icon: .properties) { ex.sheet = .properties([item]) },
             ], width: 240, point: p)
         }
     }

@@ -5,7 +5,9 @@ import AppKit
 
 struct RenamePlan {
     enum CaseMode: String, CaseIterable { case unchanged = "Unchanged", lower = "lowercase",
-                                          upper = "UPPERCASE", title = "Title Case" }
+                                          upper = "UPPERCASE", title = "Title Case"
+        var label: String { tr(rawValue) }
+    }
 
     var find = ""
     var replace = ""
@@ -102,7 +104,7 @@ struct BatchRenameDialog: View {
     }
 
     var body: some View {
-        WinDialog(title: "Rename \(items.count) items", width: 620, onClose: onClose) {
+        WinDialog(title: trp(items.count, "Rename %@ item", "Rename %@ items"), width: 620, onClose: onClose) {
             VStack(alignment: .leading, spacing: 0) {
                 rules
                 Divider().overlay(Win.divider)
@@ -110,49 +112,49 @@ struct BatchRenameDialog: View {
             }
         } footer: {
             if !conflicts.isEmpty {
-                Text("\(conflicts.count) name\(conflicts.count == 1 ? "" : "s") would clash")
+                Text(trp(conflicts.count, "%@ name would clash", "%@ names would clash"))
                     .font(Win.body(11)).foregroundStyle(Win.danger)
                 Spacer()
             }
-            WinDialogButton(title: "Rename", primary: true,
+            WinDialogButton(title: tr("Rename"), primary: true,
                             enabled: changedCount > 0 && conflicts.isEmpty) {
                 apply()
             }
-            WinDialogButton(title: "Cancel", action: onClose)
+            WinDialogButton(title: tr("Cancel"), action: onClose)
         }
     }
 
     private var rules: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                LabelledField(label: "Find", text: $plan.find, width: 170)
-                LabelledField(label: "Replace with", text: $plan.replace, width: 170)
+                LabelledField(label: tr("Find"), text: $plan.find, width: 170)
+                LabelledField(label: tr("Replace with"), text: $plan.replace, width: 170)
                 HStack(spacing: 7) {
                     WinCheckbox(checked: plan.caseSensitive) { plan.caseSensitive.toggle() }
-                    Text("Match case").font(Win.body(11)).foregroundStyle(Win.textSecondary)
+                    Text(tr("Match case")).font(Win.body(11)).foregroundStyle(Win.textSecondary)
                 }
                 .padding(.top, 14)
                 Spacer(minLength: 0)
             }
             HStack(spacing: 10) {
-                LabelledField(label: "Prefix", text: $plan.prefix, width: 130)
-                LabelledField(label: "Suffix", text: $plan.suffix, width: 130)
-                LabelledField(label: "New extension", text: $plan.newExtension, width: 110)
+                LabelledField(label: tr("Prefix"), text: $plan.prefix, width: 130)
+                LabelledField(label: tr("Suffix"), text: $plan.suffix, width: 130)
+                LabelledField(label: tr("New extension"), text: $plan.newExtension, width: 110)
                 Spacer(minLength: 0)
             }
             HStack(spacing: 14) {
                 HStack(spacing: 7) {
                     WinCheckbox(checked: plan.numbering) { plan.numbering.toggle() }
-                    Text("Number them").font(Win.body(12)).foregroundStyle(Win.text)
+                    Text(tr("Number them")).font(Win.body(12)).foregroundStyle(Win.text)
                 }
                 if plan.numbering {
-                    Stepper("Start at \(plan.startAt)", value: $plan.startAt, in: 0...9999)
+                    Stepper(tr("Start at %@", plan.startAt), value: $plan.startAt, in: 0...9999)
                         .font(Win.body(11)).foregroundStyle(Win.textSecondary)
-                    Stepper("\(plan.digits) digits", value: $plan.digits, in: 1...6)
+                    Stepper(trp(plan.digits, "%@ digit", "%@ digits"), value: $plan.digits, in: 1...6)
                         .font(Win.body(11)).foregroundStyle(Win.textSecondary)
                 }
                 Spacer(minLength: 0)
-                WinSegmented(options: RenamePlan.CaseMode.allCases.map { ($0.rawValue, $0) },
+                WinSegmented(options: RenamePlan.CaseMode.allCases.map { ($0.label, $0) },
                              selection: $plan.caseMode)
             }
         }
@@ -162,10 +164,10 @@ struct BatchRenameDialog: View {
     private var preview: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Preview").font(Win.body(11, weight: .semibold))
+                Text(tr("Preview")).font(Win.body(11, weight: .semibold))
                     .foregroundStyle(Win.textSecondary)
                 Spacer()
-                Text("\(changedCount) of \(items.count) will change")
+                Text(tr("%1$@ of %2$@ will change", changedCount, items.count))
                     .font(Win.body(11)).foregroundStyle(Win.textTertiary)
             }
             .padding(.horizontal, 16)
@@ -208,7 +210,7 @@ struct BatchRenameDialog: View {
                 // Undo must cover what already happened: a half-applied batch
                 // that cannot be undone is silent data reshuffling.
                 ex.recordBatchRename(renames)
-                ex.sheet = .error("Could not rename “\(item.name)”. \(error.localizedDescription)")
+                ex.sheet = .error(tr("Could not rename “%1$@”. %2$@", item.name, error.localizedDescription))
                 return
             }
         }

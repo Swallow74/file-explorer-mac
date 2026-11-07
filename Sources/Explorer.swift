@@ -24,13 +24,25 @@ enum Location: Hashable {
         }
     }
 
-    var title: String {
+    /// Language-independent name for the special places, for storing.
+    var stableName: String {
         switch self {
         case .home: return "Home"
         case .gallery: return "Gallery"
         case .thisPC: return "This PC"
         case .network: return "Network"
         case .recycleBin: return "Recycle Bin"
+        default: return title
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .home: return tr("Home")
+        case .gallery: return tr("Gallery")
+        case .thisPC: return tr("This PC")
+        case .network: return tr("Network")
+        case .recycleBin: return tr("Recycle Bin")
         case .folder(let u): return Places.displayName(for: u)
         case .archive(let archive, let inner):
             return inner.isEmpty ? archive.lastPathComponent
@@ -120,11 +132,11 @@ enum UndoAction {
 
     var label: String {
         switch self {
-        case .rename: return "Rename"
-        case .move: return "Move"
-        case .create: return "New"
-        case .trash: return "Delete"
-        case .copy: return "Copy"
+        case .rename: return tr("Rename")
+        case .move: return tr("Move")
+        case .create: return tr("New")
+        case .trash: return tr("Delete")
+        case .copy: return tr("Copy")
         }
     }
 }
@@ -209,7 +221,7 @@ enum Ops {
         return firstError
     }
 
-    static func newFolder(in dir: URL, name: String = "New folder") throws -> URL {
+    static func newFolder(in dir: URL, name: String = tr("New folder")) throws -> URL {
         let url = uniqueURL(for: name, in: dir, copySuffix: false)
         try fm.createDirectory(at: url, withIntermediateDirectories: false)
         return url
@@ -601,7 +613,7 @@ final class Explorer: ObservableObject {
                         if let staged {
                             NSWorkspace.shared.open(staged)
                         } else {
-                            self.sheet = .error("Could not extract “\(item.name)” from the archive.")
+                            self.sheet = .error(tr("Could not extract “%@” from the archive.", item.name))
                         }
                     }
                 }
@@ -636,14 +648,14 @@ final class Explorer: ObservableObject {
     }
 
     private func runExtraction(_ archive: URL, entries: [String], to destination: URL) {
-        flash("Extracting \(archive.lastPathComponent)")
+        flash(tr("Extracting %@", archive.lastPathComponent))
         DispatchQueue.global(qos: .userInitiated).async {
             let error = Archives.extract(archive, entries: entries, to: destination)
             DispatchQueue.main.async {
                 if let error {
-                    self.sheet = .error("Could not extract the archive.\n\(error)")
+                    self.sheet = .error(tr("Could not extract the archive.\n%@", error))
                 } else {
-                    self.flash("Extracted to \(destination.lastPathComponent)")
+                    self.flash(tr("Extracted to %@", destination.lastPathComponent))
                     if self.currentDirectory == destination.deletingLastPathComponent() {
                         self.reload()
                     }
@@ -803,7 +815,7 @@ final class Explorer: ObservableObject {
             do { try NSWorkspace.shared.unmountAndEjectDevice(at: url) }
             catch {
                 DispatchQueue.main.async {
-                    self.sheet = .error("The device “\(Places.displayName(for: url))” is currently in use. Close any programs that might be using it, and then try again.")
+                    self.sheet = .error(tr("The device “%@” is currently in use. Close any programs that might be using it, and then try again.", Places.displayName(for: url)))
                 }
                 return
             }
@@ -815,14 +827,14 @@ final class Explorer: ObservableObject {
         let sel = selectedItems
         guard !sel.isEmpty else { return }
         Clipboard.copy(sel.map(\.url))
-        flash("\(sel.count) item\(sel.count == 1 ? "" : "s") copied")
+        flash(trp(sel.count, "%@ item copied", "%@ items copied"))
     }
 
     func cutSelection() {
         let sel = selectedItems
         guard !sel.isEmpty else { return }
         Clipboard.cut(sel.map(\.url))
-        flash("\(sel.count) item\(sel.count == 1 ? "" : "s") cut")
+        flash(trp(sel.count, "%@ item cut", "%@ items cut"))
     }
 
     func paste() {
@@ -896,7 +908,7 @@ final class Explorer: ObservableObject {
         let paths = sel.isEmpty ? [currentDirectory?.path].compactMap { $0 } : sel.map { "\"\($0.url.path)\"" }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(paths.joined(separator: " "), forType: .string)
-        flash("Path copied")
+        flash(tr("Path copied"))
     }
 
     // MARK: Mutations
@@ -914,7 +926,7 @@ final class Explorer: ObservableObject {
     func performDelete(_ items: [FileItem], permanent: Bool) {
         if permanent {
             if let error = Ops.deleteForever(items.map(\.url)) {
-                sheet = .error("Could not delete: \(error.localizedDescription)")
+                sheet = .error(tr("Could not delete: %@", error.localizedDescription))
             }
         } else {
             let trashed = Ops.trash(items.map(\.url))
@@ -969,7 +981,7 @@ final class Explorer: ObservableObject {
             reload()
             tab.selection = [dest.path]
         } catch {
-            sheet = .error("The file name you specified is not valid or too long.")
+            sheet = .error(tr("The file name you specified is not valid or too long."))
         }
     }
 
@@ -1000,7 +1012,7 @@ final class Explorer: ObservableObject {
     func recordBatchRename(_ renames: [(from: URL, to: URL)]) {
         guard !renames.isEmpty else { return }
         push(.move(items: renames))
-        flash("Renamed \(renames.count) item\(renames.count == 1 ? "" : "s")")
+        flash(trp(renames.count, "Renamed %@ item", "Renamed %@ items"))
     }
 
     func zipSelection() {
@@ -1010,15 +1022,15 @@ final class Explorer: ObservableObject {
         let urls = sel.map(\.url)
         // Zipping a big folder runs the system's zip to completion, so it
         // belongs on the queue, not on the main thread.
-        flash("Zipping \(sel.count) item\(sel.count == 1 ? "" : "s")")
+        flash(trp(sel.count, "Zipping %@ item", "Zipping %@ items"))
         DispatchQueue.global(qos: .userInitiated).async {
             let created = Ops.zip(urls, in: dir)
             DispatchQueue.main.async {
                 if let created {
                     self.reload()
-                    self.flash("Created \(created.lastPathComponent)")
+                    self.flash(tr("Created %@", created.lastPathComponent))
                 } else {
-                    self.sheet = .error("Could not create the zip archive.")
+                    self.sheet = .error(tr("Could not create the zip archive."))
                 }
             }
         }
@@ -1082,10 +1094,10 @@ final class Explorer: ObservableObject {
 
         if let redoAction { redoStack.append(redoAction) }
         if failures > 0 {
-            sheet = .error("\(failures) item\(failures == 1 ? " could" : "s could") not be reverted — the original path is occupied or gone.")
+            sheet = .error(trp(failures, "%@ item could not be reverted — the original path is occupied or gone.", "%@ items could not be reverted — the original path is occupied or gone."))
         }
         reloadTabsTouchedBy(a)
-        flash("Undo \(a.label)")
+        flash(tr("Undo %@", a.label))
     }
 
     func redo() {
@@ -1119,7 +1131,7 @@ final class Explorer: ObservableObject {
 
         if let undoAction { undoStack.append(undoAction) }
         if failures > 0 {
-            sheet = .error("\(failures) item\(failures == 1 ? " was" : "s were") not reapplied — something occupies the target now.")
+            sheet = .error(trp(failures, "%@ item was not reapplied — something occupies the target now.", "%@ items were not reapplied — something occupies the target now."))
         }
         reloadTabsTouchedBy(a)
     }
@@ -1202,7 +1214,7 @@ final class Explorer: ObservableObject {
         if let m = statusMessage { return m }
         var n = tab.items.count
         if case .home = tab.location { n = Places.quickAccess.count + recentFiles.count }
-        return "\(n) item\(n == 1 ? "" : "s")"
+        return trp(n, "%@ item", "%@ items")
     }
 
     var selectionText: String? {
@@ -1210,7 +1222,7 @@ final class Explorer: ObservableObject {
         guard !sel.isEmpty else { return nil }
         let bytes = sel.reduce(Int64(0)) { $0 + $1.size }
         let sizePart = sel.contains(where: { $0.isDirectory }) ? "" : "  \(FileItem.friendlySize(bytes))"
-        return "\(sel.count) item\(sel.count == 1 ? "" : "s") selected\(sizePart)"
+        return trp(sel.count, "%@ item selected", "%@ items selected") + sizePart
     }
 
     // MARK: Breadcrumbs
@@ -1224,11 +1236,11 @@ final class Explorer: ObservableObject {
 
     var breadcrumbs: [Crumb] {
         switch tab.location {
-        case .home: return [Crumb(title: "Home", location: .home, icon: .home)]
-        case .thisPC: return [Crumb(title: "This PC", location: .thisPC, icon: .thisPC)]
-        case .gallery: return [Crumb(title: "Gallery", location: .gallery, icon: .gallery)]
-        case .network: return [Crumb(title: "Network", location: .network, icon: .network)]
-        case .recycleBin: return [Crumb(title: "Recycle Bin", location: .recycleBin, icon: .recycleBin)]
+        case .home: return [Crumb(title: tr("Home"), location: .home, icon: .home)]
+        case .thisPC: return [Crumb(title: tr("This PC"), location: .thisPC, icon: .thisPC)]
+        case .gallery: return [Crumb(title: tr("Gallery"), location: .gallery, icon: .gallery)]
+        case .network: return [Crumb(title: tr("Network"), location: .network, icon: .network)]
+        case .recycleBin: return [Crumb(title: tr("Recycle Bin"), location: .recycleBin, icon: .recycleBin)]
         case .archive(let archive, let inner):
             var crumbs = folderCrumbs(archive.deletingLastPathComponent())
             crumbs.append(Crumb(title: archive.lastPathComponent,
@@ -1256,7 +1268,7 @@ final class Explorer: ObservableObject {
             if parent.path == u.path { break }
             u = parent
         }
-        crumbs.insert(Crumb(title: "This PC", location: .thisPC, icon: .thisPC), at: 0)
+        crumbs.insert(Crumb(title: tr("This PC"), location: .thisPC, icon: .thisPC), at: 0)
         return crumbs
     }
 
@@ -1275,7 +1287,7 @@ final class Explorer: ObservableObject {
         if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) {
             if isDir.boolValue { go(to: url) } else { NSWorkspace.shared.open(url) }
         } else {
-            sheet = .error("Windows can't find '\(raw)'. Check the spelling and try again.")
+            sheet = .error(tr("Windows can't find '%@'. Check the spelling and try again.", raw))
         }
     }
 }

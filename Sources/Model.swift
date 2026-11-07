@@ -64,10 +64,10 @@ struct FileItem: Identifiable, Hashable {
 
     /// Matches the "Type" column wording Windows Explorer uses.
     var typeName: String {
-        if isDirectory && !isPackage { return "File folder" }
-        if ext.isEmpty { return "File" }
-        if let known = FileItem.knownTypes[ext.lowercased()] { return known }
-        return "\(ext.uppercased()) File"
+        if isDirectory && !isPackage { return tr("File folder") }
+        if ext.isEmpty { return tr("File") }
+        if let known = FileItem.knownTypes[ext.lowercased()] { return tr(known) }
+        return tr("%@ File", ext.uppercased())
     }
 
     private static let knownTypes: [String: String] = [
@@ -101,20 +101,36 @@ struct FileItem: Identifiable, Hashable {
     var modifiedText: String { FileItem.winDate.string(from: modified) }
     var createdText: String { FileItem.winDate.string(from: created) }
 
-    static let grouped: NumberFormatter = {
-        let f = NumberFormatter(); f.numberStyle = .decimal; f.groupingSeparator = ","
-        return f
-    }()
+    // The thousands separator and the date layout follow the app language;
+    // English keeps the Windows layout (1,234 / 7/11/2026 3:01 PM).
+    private static var formatterCode = ""
+    private static var groupedFormatter = NumberFormatter()
+    private static var dateFormatter = DateFormatter()
 
-    static let winDate: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "M/d/yyyy h:mm a"
-        f.amSymbol = "AM"; f.pmSymbol = "PM"; f.locale = Locale(identifier: "en_US_POSIX")
-        return f
-    }()
+    private static func refreshFormatters() {
+        guard formatterCode != L10n.code else { return }
+        formatterCode = L10n.code
+        let n = NumberFormatter(); n.numberStyle = .decimal
+        let d = DateFormatter()
+        if L10n.code == "en" {
+            n.groupingSeparator = ","
+            d.dateFormat = "M/d/yyyy h:mm a"
+            d.amSymbol = "AM"; d.pmSymbol = "PM"; d.locale = Locale(identifier: "en_US_POSIX")
+        } else {
+            n.locale = Locale(identifier: L10n.code)
+            d.locale = Locale(identifier: L10n.code)
+            d.dateStyle = .short; d.timeStyle = .short
+        }
+        groupedFormatter = n
+        dateFormatter = d
+    }
+
+    static var grouped: NumberFormatter { refreshFormatters(); return groupedFormatter }
+    static var winDate: DateFormatter { refreshFormatters(); return dateFormatter }
 
     /// Full byte count with grouping, as shown in Properties.
     static func bytesText(_ n: Int64) -> String {
-        (grouped.string(from: NSNumber(value: n)) ?? "\(n)") + " bytes"
+        tr("%@ bytes", grouped.string(from: NSNumber(value: n)) ?? "\(n)")
     }
 
     /// "1.44 MB" style, as Windows shows above the byte count.
@@ -122,7 +138,7 @@ struct FileItem: Identifiable, Hashable {
         let units = ["bytes", "KB", "MB", "GB", "TB"]
         var v = Double(n), i = 0
         while v >= 1024 && i < units.count - 1 { v /= 1024; i += 1 }
-        if i == 0 { return "\(n) bytes" }
+        if i == 0 { return tr("%@ bytes", n) }
         return String(format: "%.2f %@", v, units[i])
     }
 }
@@ -131,6 +147,7 @@ struct FileItem: Identifiable, Hashable {
 
 enum SortKey: String, CaseIterable {
     case name = "Name", modified = "Date modified", type = "Type", size = "Size", created = "Date created"
+    var label: String { tr(rawValue) }
 }
 
 enum ViewMode: String, CaseIterable {
@@ -142,6 +159,8 @@ enum ViewMode: String, CaseIterable {
     case details = "Details"
     case tiles = "Tiles"
     case content = "Content"
+
+    var label: String { tr(rawValue) }
 
     var isIconGrid: Bool {
         switch self {
@@ -266,12 +285,12 @@ enum Places {
     /// The folders Windows pins to Quick access out of the box.
     static var defaultPinned: [Place] {
         [
-            Place(id: "desktop", title: "Desktop", icon: .desktop, url: desktop, accent: .blue),
-            Place(id: "downloads", title: "Downloads", icon: .download, url: downloads, accent: .green),
-            Place(id: "documents", title: "Documents", icon: .document, url: documents, accent: .teal),
-            Place(id: "pictures", title: "Pictures", icon: .picture, url: pictures, accent: .blue),
-            Place(id: "music", title: "Music", icon: .music, url: music, accent: .orange),
-            Place(id: "videos", title: "Videos", icon: .video, url: videos, accent: .purple),
+            Place(id: "desktop", title: tr("Desktop"), icon: .desktop, url: desktop, accent: .blue),
+            Place(id: "downloads", title: tr("Downloads"), icon: .download, url: downloads, accent: .green),
+            Place(id: "documents", title: tr("Documents"), icon: .document, url: documents, accent: .teal),
+            Place(id: "pictures", title: tr("Pictures"), icon: .picture, url: pictures, accent: .blue),
+            Place(id: "music", title: tr("Music"), icon: .music, url: music, accent: .orange),
+            Place(id: "videos", title: tr("Videos"), icon: .video, url: videos, accent: .purple),
         ]
     }
 
@@ -309,21 +328,21 @@ enum Places {
 
     static var sidebar: [Place] {
         var list: [Place] = [
-            Place(id: "home", title: "Home", icon: .home, url: nil, accent: .orange, special: .home),
-            Place(id: "gallery", title: "Gallery", icon: .gallery, url: pictures, accent: .blue, special: .gallery),
+            Place(id: "home", title: tr("Home"), icon: .home, url: nil, accent: .orange, special: .home),
+            Place(id: "gallery", title: tr("Gallery"), icon: .gallery, url: pictures, accent: .blue, special: .gallery),
         ]
         list.append(contentsOf: cloudPlaces)
         list.append(contentsOf: quickAccess)
-        list.append(Place(id: "thispc", title: "This PC", icon: .thisPC, url: nil, accent: .blue, special: .thisPC))
-        list.append(Place(id: "network", title: "Network", icon: .network, url: URL(fileURLWithPath: "/Volumes"), accent: .neutral, special: .network))
+        list.append(Place(id: "thispc", title: tr("This PC"), icon: .thisPC, url: nil, accent: .blue, special: .thisPC))
+        list.append(Place(id: "network", title: tr("Network"), icon: .network, url: URL(fileURLWithPath: "/Volumes"), accent: .neutral, special: .network))
         return list
     }
 
     static func displayName(for url: URL) -> String {
         if url.path == home.path { return NSUserName() }
-        if url.path == "/" { return "Local Disk (C:)" }
-        if url.path == trash.path { return "Recycle Bin" }
-        if url.resolvingSymlinksInPath().path == videos.path { return "Videos" }
+        if url.path == "/" { return tr("Local Disk (C:)") }
+        if url.path == trash.path { return tr("Recycle Bin") }
+        if url.resolvingSymlinksInPath().path == videos.path { return tr("Videos") }
         return url.lastPathComponent
     }
 

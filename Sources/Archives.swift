@@ -202,7 +202,7 @@ enum Archives {
         process.standardOutput = pipe
         process.standardError = pipe
         do { try process.run() } catch {
-            return (1, "Error: \(error.localizedDescription)")
+            return (1, tr("Error: %@", error.localizedDescription))
         }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()

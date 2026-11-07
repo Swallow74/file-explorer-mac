@@ -211,30 +211,30 @@ struct NavRow: View {
     private func menuEntries() -> [MenuEntry] {
         var entries: [MenuEntry] = []
         if let loc = node.location {
-            entries.append(MenuEntry(title: "Open", icon: .openWith) { ex.go(to: loc) })
-            entries.append(MenuEntry(title: "Open in new tab", icon: .plus) { ex.go(to: loc, newTab: true) })
-            entries.append(MenuEntry(title: "Open in new window") { AppState.shared.openNewWindow(at: loc) })
+            entries.append(MenuEntry(title: tr("Open"), icon: .openWith) { ex.go(to: loc) })
+            entries.append(MenuEntry(title: tr("Open in new tab"), icon: .plus) { ex.go(to: loc, newTab: true) })
+            entries.append(MenuEntry(title: tr("Open in new window")) { AppState.shared.openNewWindow(at: loc) })
         }
         guard let url = node.url else { return entries }
         if Ops.isEjectable(url) {
-            entries.append(MenuEntry(title: "Eject") { ex.eject(url) })
+            entries.append(MenuEntry(title: tr("Eject")) { ex.eject(url) })
         }
         let settings = Settings.shared
         let pinned = settings.isPinned(url) && !settings.hiddenPlaces.contains(url.path)
         entries.append(.sep())
-        entries.append(MenuEntry(title: pinned ? "Unpin from Quick access" : "Pin to Quick access",
+        entries.append(MenuEntry(title: pinned ? tr("Unpin from Quick access") : tr("Pin to Quick access"),
                                  icon: pinned ? .unpin : .pin) {
             if pinned { settings.unpin(url) } else { settings.pin(url) }
         })
-        entries.append(MenuEntry(title: "Change icon…", icon: .palette) {
+        entries.append(MenuEntry(title: tr("Change icon…"), icon: .palette) {
             if let i = Loader.item(at: url) { ex.sheet = .folderIcon(i) }
         })
         entries.append(.sep())
-        entries.append(MenuEntry(title: "Copy as path", icon: .copy) {
+        entries.append(MenuEntry(title: tr("Copy as path"), icon: .copy) {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(url.path, forType: .string)
         })
-        entries.append(MenuEntry(title: "Properties", icon: .properties) {
+        entries.append(MenuEntry(title: tr("Properties"), icon: .properties) {
             if let i = Loader.item(at: url) { ex.sheet = .properties([i]) }
         })
         return entries

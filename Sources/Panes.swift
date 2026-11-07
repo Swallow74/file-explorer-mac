@@ -39,16 +39,16 @@ struct StatusBar: View {
                 }
                 .buttonStyle(.plain)
                 .hoverFill(corner: 3)
-                .help("Show file transfers")
+                .help(tr("Show file transfers"))
                 .padding(.trailing, 6)
             }
 
-            WinButton(tooltip: "Details view (Ctrl+Shift+6)",
+            WinButton(tooltip: tr("Details view (Ctrl+Shift+6)"),
                       active: prefs.viewMode == .details, padding: 6, height: 22, corner: 3) {
                 prefs.viewMode = .details
             } content: { Glyph(icon: .listView, size: 14, color: Win.textSecondary, weight: 1.15) }
 
-            WinButton(tooltip: "Large icons view (Ctrl+Shift+2)",
+            WinButton(tooltip: tr("Large icons view (Ctrl+Shift+2)"),
                       active: prefs.viewMode == .largeIcons, padding: 6, height: 22, corner: 3) {
                 prefs.viewMode = .largeIcons
             } content: { Glyph(icon: .gridView, size: 14, color: Win.textSecondary, weight: 1.15) }
@@ -83,14 +83,14 @@ struct TransfersPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("File transfers")
+                Text(tr("File transfers"))
                     .font(Win.body(13, weight: .semibold)).foregroundStyle(Win.text)
                 Spacer()
                 if transfers.jobs.contains(where: { !$0.isActive }) {
                     WinButton(padding: 8, height: 24) {
                         transfers.clearFinished()
                     } content: {
-                        Text("Clear finished").font(Win.body(11)).foregroundStyle(Win.textSecondary)
+                        Text(tr("Clear finished")).font(Win.body(11)).foregroundStyle(Win.textSecondary)
                     }
                 }
                 WinButton(padding: 6, height: 24) {
@@ -106,7 +106,7 @@ struct TransfersPanel: View {
             Divider().overlay(Win.divider)
 
             if transfers.jobs.isEmpty {
-                Text("Nothing is being copied or moved.")
+                Text(tr("Nothing is being copied or moved."))
                     .font(Win.body(12)).foregroundStyle(Win.textTertiary)
                     .padding(16)
             } else {
@@ -132,22 +132,22 @@ struct TransferRow: View {
 
     private var statusText: String {
         switch job.state {
-        case .waiting: return "Waiting"
+        case .waiting: return tr("Waiting")
         case .running: return job.rateText.isEmpty ? job.sizeText : "\(job.sizeText)  \(job.rateText)"
-        case .finished: return "Finished, \(job.filesTotal) item\(job.filesTotal == 1 ? "" : "s")"
-        case .cancelled: return "Cancelled"
+        case .finished: return trp(job.filesTotal, "Finished, %@ item", "Finished, %@ items")
+        case .cancelled: return tr("Cancelled")
         case .failed(let message): return message
         }
     }
 
     private var route: String {
-        let to = job.destination.map { Places.displayName(for: $0) } ?? "Recycle Bin"
+        let to = job.destination.map { Places.displayName(for: $0) } ?? tr("Recycle Bin")
         let count = job.sources.count
-        let what = count == 1 ? "“\(job.sources[0].lastPathComponent)”" : "\(count) items"
+        let what = count == 1 ? "“\(job.sources[0].lastPathComponent)”" : trp(count, "%@ item", "%@ items")
         if let from = job.sources.first?.deletingLastPathComponent(), job.destination != nil {
-            return "\(job.kind.rawValue) \(what) from \(Places.displayName(for: from)) to \(to)"
+            return tr("%1$@ %2$@ from %3$@ to %4$@", job.kind.label, what, Places.displayName(for: from), to)
         }
-        return "\(job.kind.rawValue) \(what)"
+        return job.kind.label + " " + what
     }
 
     var body: some View {
@@ -158,10 +158,10 @@ struct TransferRow: View {
     private var active: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text(job.state == .waiting ? "Waiting…" : "\(job.percent)% complete")
+                Text(job.state == .waiting ? tr("Waiting…") : tr("%@% complete", job.percent))
                     .font(Win.body(15, weight: .semibold)).foregroundStyle(Win.text)
                 Spacer()
-                WinButton(tooltip: "Cancel", padding: 6, height: 24) {
+                WinButton(tooltip: tr("Cancel"), padding: 6, height: 24) {
                     TransferQueue.shared.cancel(job.id)
                 } content: {
                     Glyph(icon: .tabClose, size: 11, color: Win.textSecondary, weight: 1.3)
@@ -170,7 +170,7 @@ struct TransferRow: View {
             Text(route).font(Win.body(12)).foregroundStyle(Win.textSecondary).lineLimit(2)
             ZStack(alignment: .topTrailing) {
                 SpeedGraph(samples: job.speeds, fraction: job.fraction)
-                Text("Speed: \(FileItem.friendlySize(Int64(job.currentSpeed)))/s")
+                Text(tr("Speed: %@/s", FileItem.friendlySize(Int64(job.currentSpeed))))
                     .font(Win.body(11)).foregroundStyle(Win.textSecondary)
                     .padding(.horizontal, 8).padding(.vertical, 5)
             }
@@ -179,9 +179,9 @@ struct TransferRow: View {
             .overlay(WinRR(radius: 4).stroke(Win.stroke, lineWidth: 1))
             ProgressTrack(fraction: job.fraction).frame(height: 4)
             VStack(alignment: .leading, spacing: 2) {
-                detail("Name", job.currentName.isEmpty ? "—" : job.currentName)
-                detail("Time remaining", job.remainingText)
-                detail("Items remaining", "\(max(0, job.filesTotal - job.filesDone)) (\(FileItem.friendlySize(max(0, job.bytesTotal - job.bytesDone))))")
+                detail(tr("Name"), job.currentName.isEmpty ? "—" : job.currentName)
+                detail(tr("Time remaining"), job.remainingText)
+                detail(tr("Items remaining"), "\(max(0, job.filesTotal - job.filesDone)) (\(FileItem.friendlySize(max(0, job.bytesTotal - job.bytesDone))))")
             }
         }
         .padding(.horizontal, 14)
@@ -269,7 +269,7 @@ struct DetailsPane: View {
             } else if let item {
                 single(item)
             } else {
-                Text("Select a file to see its details.")
+                Text(tr("Select a file to see its details."))
                     .font(Win.body(12)).foregroundStyle(Win.textTertiary)
                     .padding(16)
             }
@@ -284,11 +284,11 @@ struct DetailsPane: View {
         let sel = ex.selectedItems
         let bytes = sel.reduce(Int64(0)) { $0 + $1.size }
         return VStack(alignment: .leading, spacing: 14) {
-            Text("\(sel.count) items selected")
+            Text(trp(sel.count, "%@ item selected", "%@ items selected"))
                 .font(Win.body(14, weight: .semibold)).foregroundStyle(Win.text)
-            PropRow(label: "Total size", value: FileItem.friendlySize(bytes))
-            PropRow(label: "Folders", value: "\(sel.filter(\.isDirectory).count)")
-            PropRow(label: "Files", value: "\(sel.filter { !$0.isDirectory }.count)")
+            PropRow(label: tr("Total size"), value: FileItem.friendlySize(bytes))
+            PropRow(label: tr("Folders"), value: "\(sel.filter(\.isDirectory).count)")
+            PropRow(label: tr("Files"), value: "\(sel.filter { !$0.isDirectory }.count)")
         }
         .padding(16)
     }
@@ -311,13 +311,13 @@ struct DetailsPane: View {
             Divider().overlay(Win.divider)
 
             VStack(alignment: .leading, spacing: 12) {
-                PropRow(label: "Date modified", value: item.modifiedText)
-                PropRow(label: "Date created", value: item.createdText)
+                PropRow(label: tr("Date modified"), value: item.modifiedText)
+                PropRow(label: tr("Date created"), value: item.createdText)
                 if !item.isDirectory {
-                    PropRow(label: "Size", value: FileItem.friendlySize(item.size))
+                    PropRow(label: tr("Size"), value: FileItem.friendlySize(item.size))
                 }
-                PropRow(label: "Location", value: item.url.deletingLastPathComponent().path)
-                PropRow(label: "Attributes", value: item.isHidden ? "Hidden" : "A")
+                PropRow(label: tr("Location"), value: item.url.deletingLastPathComponent().path)
+                PropRow(label: tr("Attributes"), value: item.isHidden ? tr("Hidden") : "A")
             }
             .padding(16)
         }
@@ -351,11 +351,11 @@ struct PreviewPane: View {
                     Image(nsImage: image).resizable().aspectRatio(contentMode: .fit).padding(12)
                 } else {
                     ItemIcon(item: item, size: 96).padding(.top, 40)
-                    Text("No preview available")
+                    Text(tr("No preview available"))
                         .font(Win.body(12)).foregroundStyle(Win.textTertiary).padding(.top, 8)
                 }
             } else {
-                Text("Select a file to preview.")
+                Text(tr("Select a file to preview."))
                     .font(Win.body(12)).foregroundStyle(Win.textTertiary).padding(16)
             }
             Spacer(minLength: 0)

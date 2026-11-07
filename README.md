@@ -34,6 +34,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
 | **Eight view modes** | Icon grids with live Quick Look thumbnails, List that flows into columns, Details with sortable resizable columns, Tiles, Content. **Group by** Name, Type, Date modified or Size, with collapsible Windows-style section headers (List, Tiles and Content ignore grouping, as Windows does). |
 | **It actually does the work** | Copy, cut and move — same-volume copies are APFS clones, instant and free until modified — paste with `- Copy` naming in the same folder and the Windows "Replace or Skip Files" prompt (replace, skip, keep both) when the destination already has the names, eject for external drives, rename, ZIP, shortcuts, Recycle Bin and permanent delete, all with undo and redo. Drag and drop works inside the app, onto sidebar folders and Quick access tiles, and to and from Finder, with the drop target lighting up as you hover it. Rubber-band selection works from any empty space, additive with `Shift` or `Ctrl`. Clicking an already-selected name again turns it into an edit field, as in Explorer and Finder, while a double-click still opens. |
+| **Your language** | The interface is translated into 16 languages (see [Languages](#languages)) and follows the macOS language by default. English is the fallback. |
 | **Power tools** | Dual pane, a background transfer queue with progress, archive browsing, batch rename, folder compare and sync, a drop shelf, workspaces, network shares and user-defined commands. Tabs get a right-click menu (duplicate, paste-to-tab, close), and dropping a file onto a tab sends it to that tab's folder without leaving the current one. |
 
 <div align="center">
@@ -190,7 +191,7 @@ Every shortcut works with **`Ctrl`** (as on Windows) *and* **`Cmd`** (as Mac mus
 
 The gear at the right end of the command bar, also in the `...` menu, the background right-click menu, and on `Ctrl+,`.
 
-- **Appearance.** System, Light or Dark, eight accent colours, and toggles for compact view, the three panes, item check boxes, extensions and hidden items.
+- **Appearance.** System, Light or Dark, **language** (follow the system or pick one; it applies at once), eight accent colours, and toggles for compact view, the three panes, item check boxes, extensions and hidden items.
 - **Shortcuts.** Re-map any command. Click a shortcut, press the keys. If the combination is taken it is moved off the other command and you are told which. Per-command and global reset.
 - **Quick access.** Everything pinned to the sidebar. Unpin any of it, including the six Windows defaults, restore what you unpinned, add folders.
 - **Folder icons.** The folders you have customised, with a reset for each.
@@ -200,6 +201,24 @@ The gear at the right end of the command bar, also in the `...` menu, the backgr
 **Custom folder icons.** Right-click a folder and choose *Change icon*, then pick a Fluent glyph and a colour, or tint the standard folder. It applies in the file list, the sidebar and the Home tiles.
 
 <br clear="right">
+
+## Languages
+
+English, Čeština, Dansk, Deutsch, Ελληνικά, Español, Français, Italiano, Nederlands, Polski, Português, Русский, Svenska, Türkçe, Українська, 日本語 and 简体中文.
+
+- **Default: system.** The app picks the first language in the macOS preference list that it ships with (any Chinese variant maps to Simplified Chinese). If none matches, or the list is empty, it uses English.
+- **Change it** in *Settings > Appearance > Language*. The window, menus and dialogs switch immediately, with no restart. Only the standard macOS panels (open and save sheets, system alerts) follow the new language at the next launch.
+- **What is not translated:** file names, your own folder names, the About credits, and the keys shown in shortcuts. Menu and file-type names that Windows itself does not localise (`ZIP`, `PowerShell`) stay as they are.
+- **Developers:** `WINEXP_LANG=<code>` forces a language for one run (for example `WINEXP_LANG=ja`). The self-test and the demo always run in English.
+
+**Adding a language.** The English text is the key, so there is no table to keep in sync.
+
+1. Create `Resources/<code>.lproj/Localizable.strings` with one `"English text" = "translation";` line per string. Copy `it.lproj` as a starting point.
+2. Keep the placeholders: `%@` in order, or `%1$@`, `%2$@` when the word order changes. Plural strings hold their forms separated by `|` (one, few, many, other, as far as the language uses them).
+3. Add the language to `L10n.languages` in `Sources/L10n.swift`, and its plural rule to `L10n.pluralIndex` if it needs one.
+4. Rebuild. `build.sh` copies every `*.lproj` and lists them in `CFBundleLocalizations`. A string with no translation shows in English, so partial translations are fine.
+
+Strings are wrapped in `tr("…")` and `trp(count, "one", "other")`; stored values (sort keys, grouping, settings) stay in English and only their display label is translated.
 
 ## How the icons were made
 
@@ -227,7 +246,8 @@ Sources/
   Explorer.swift       Tabs, history, selection, clipboard, file ops, undo, search
   QuickLook.swift      Space-bar Quick Look preview panel
   Grouping.swift       The "Group by" buckets and their Windows labels
-  Settings.swift       Re-mappable shortcuts, theme, folder icons, pinning
+  Settings.swift       Re-mappable shortcuts, theme, language, folder icons, pinning
+  L10n.swift           Languages, system-language detection, tr() and plural forms
   WindowModel.swift    One or two panes per window
   Transfers.swift      Background copy and move queue with progress
   Updater.swift        Update check against GitHub Releases and self-update
@@ -253,6 +273,8 @@ Sources/
   main.swift           The executable's entry point
   SelfTest.swift       End-to-end checks
   Demo.swift           The scripted tour behind the README animation
+Resources/
+  <code>.lproj/        Localizable.strings per language
 Tools/
   MakeIcon.swift       Draws the app icon, one render per icon-set size
   release.sh           Signs, notarizes and staples a release build
@@ -272,11 +294,11 @@ Two decisions worth calling out:
 WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 ```
 
-Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. **118 checks.** The suite is deterministic: it never depends on the order background transfers land in.
+Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **164 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
 
 GitHub Actions runs the build, the signature check and this suite on every push (`.github/workflows/build.yml`), and uploads the universal app as a workflow artifact.
 
-Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_SIZE=1400x900` opens at a given size, `WINEXP_TEST=menu:context|dialog:settings|dialog:about|dual|dual-home|rename|archive|compare|marquee|drop` opens a particular menu, dialog or layout for inspection, and `WINEXP_DEMO=<dir>` drives the scripted tour that produces the animation at the top of this page.
+Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_LANG=<code>` forces the interface language, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_SIZE=1400x900` opens at a given size, `WINEXP_TEST=menu:context|dialog:settings|dialog:about|dual|dual-home|rename|archive|compare|marquee|drop` opens a particular menu, dialog or layout for inspection, and `WINEXP_DEMO=<dir>` drives the scripted tour that produces the animation at the top of this page.
 
 ## Deliberate differences
 
@@ -327,8 +349,11 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **CI** on GitHub Actions: universal build, signature check, self-test, app uploaded as an artifact; one queued build per branch.
 - The README now says plainly that building needs a full Xcode, not just the Command Line Tools.
 
+**Localisation**
+- The interface is translated into 16 languages, with a language picker in Settings, automatic detection of the macOS language and an English fallback.
+
 **Tests**
-- The self-test suite grew from 49 to more than 118 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
+- The self-test suite grew from 49 to more than 164 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
 
 Ideas and behaviours borrowed from other open-source Mac explorers (MacXplorer, MaXplorer, MacExplorer, explorer-macos) were **reimplemented from scratch**; no code from GPL projects is included.
 

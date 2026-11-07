@@ -4,7 +4,10 @@ import AppKit
 // MARK: - Model
 
 struct TransferJob: Identifiable {
-    enum Kind: String { case copy = "Copying", move = "Moving", delete = "Deleting" }
+    enum Kind: String {
+        case copy = "Copying", move = "Moving", delete = "Deleting"
+        var label: String { tr(rawValue) }
+    }
     enum State: Equatable { case waiting, running, finished, cancelled, failed(String) }
     /// What to do when the destination already holds an item with the same name.
     enum Conflict { case rename, replace, skip }
@@ -37,9 +40,9 @@ struct TransferJob: Identifiable {
     }
 
     var remainingText: String {
-        guard state == .running, currentSpeed > 1, bytesTotal > bytesDone else { return "Calculating…" }
+        guard state == .running, currentSpeed > 1, bytesTotal > bytesDone else { return tr("Calculating…") }
         let s = Double(bytesTotal - bytesDone) / currentSpeed
-        return s < 5 ? "A few seconds" : "About \(TransferJob.timeText(s))"
+        return s < 5 ? tr("A few seconds") : tr("About %@", TransferJob.timeText(s))
     }
 
     var fraction: Double {
@@ -51,7 +54,7 @@ struct TransferJob: Identifiable {
 
     /// "12.4 MB of 300 MB", the way Explorer's copy dialog reads.
     var sizeText: String {
-        "\(FileItem.friendlySize(bytesDone)) of \(FileItem.friendlySize(bytesTotal))"
+        tr("%1$@ of %2$@", FileItem.friendlySize(bytesDone), FileItem.friendlySize(bytesTotal))
     }
 
     var rateText: String {
@@ -60,13 +63,13 @@ struct TransferJob: Identifiable {
         guard elapsed > 0.6, bytesDone > 0 else { return "" }
         let perSecond = Double(bytesDone) / elapsed
         let remaining = Double(bytesTotal - bytesDone) / max(perSecond, 1)
-        return "\(FileItem.friendlySize(Int64(perSecond)))/s, \(TransferJob.timeText(remaining)) left"
+        return tr("%1$@/s, %2$@ left", FileItem.friendlySize(Int64(perSecond)), TransferJob.timeText(remaining))
     }
 
     static func timeText(_ seconds: Double) -> String {
-        if seconds < 60 { return "\(Int(seconds.rounded())) seconds" }
-        if seconds < 3600 { return "\(Int((seconds / 60).rounded())) minutes" }
-        return String(format: "%.1f hours", seconds / 3600)
+        if seconds < 60 { return trp(Int(seconds.rounded()), "%@ second", "%@ seconds") }
+        if seconds < 3600 { return trp(Int((seconds / 60).rounded()), "%@ minute", "%@ minutes") }
+        return tr("%@ hours", String(format: "%.1f", seconds / 3600))
     }
 }
 
@@ -97,8 +100,8 @@ final class TransferQueue: ObservableObject {
     var summary: String {
         let running = active
         guard let first = running.first else { return "" }
-        if running.count > 1 { return "\(first.kind.rawValue) \(running.count) sets of items" }
-        return "\(first.kind.rawValue) \(first.filesDone) of \(first.filesTotal) items"
+        if running.count > 1 { return tr("%1$@ %2$@ sets of items", first.kind.label, running.count) }
+        return tr("%1$@ %2$@ of %3$@ items", first.kind.label, first.filesDone, first.filesTotal)
     }
 
     // MARK: Submitting work
@@ -227,7 +230,7 @@ final class TransferQueue: ObservableObject {
                 let src = source.standardizedFileURL.path
                 let dst = destination.standardizedFileURL.path
                 if dst == src || dst.hasPrefix(src + "/") {
-                    job.state = .failed("You can't move or copy “\(source.lastPathComponent)” into itself.")
+                    job.state = .failed(tr("You can't move or copy “%@” into itself.", source.lastPathComponent))
                     return job
                 }
             }
@@ -268,7 +271,7 @@ final class TransferQueue: ObservableObject {
                             // Record the copy as created, so the undo stack can
                             // delete it, instead of leaving it untracked.
                             job.created.append(target)
-                            job.state = .failed("Copied “\(source.lastPathComponent)” but could not delete the original: \(error.localizedDescription)")
+                            job.state = .failed(tr("Copied “%1$@” but could not delete the original: %2$@", source.lastPathComponent, error.localizedDescription))
                             return job
                         }
                     }

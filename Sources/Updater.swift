@@ -48,13 +48,13 @@ enum Updater {
             DispatchQueue.main.async {
                 if release != nil { Store.defaults.set(Date(), forKey: lastCheckKey) }
                 guard let release else {
-                    if manual { alert("Couldn't check for updates", "No release found or GitHub is unreachable.") }
+                    if manual { alert(tr("Couldn't check for updates"), tr("No release found or GitHub is unreachable.")) }
                     return
                 }
                 if isNewer(release.tag, than: current) {
                     if manual || Store.defaults.string(forKey: skippedKey) != release.tag { offer(release) }
                 } else if manual {
-                    alert("You're up to date", "File Explorer \(current) is the latest version.")
+                    alert(tr("You're up to date"), tr("File Explorer %@ is the latest version.", current))
                 }
             }
         }.resume()
@@ -86,13 +86,13 @@ enum Updater {
 
     private static func offer(_ r: Release) {
         let a = NSAlert()
-        a.messageText = "File Explorer \(r.tag) is available"
-        a.informativeText = "You have \(current)."
+        a.messageText = tr("File Explorer %@ is available", r.tag)
+        a.informativeText = tr("You have %@.", current)
         let auto = r.zip != nil && canSelfUpdate
-        if auto { a.addButton(withTitle: "Install and Restart") }
-        a.addButton(withTitle: "Download Page")
-        a.addButton(withTitle: "Later")
-        a.addButton(withTitle: "Skip This Version")
+        if auto { a.addButton(withTitle: tr("Install and Restart")) }
+        a.addButton(withTitle: tr("Download Page"))
+        a.addButton(withTitle: tr("Later"))
+        a.addButton(withTitle: tr("Skip This Version"))
         let base = auto ? 0 : 1   // index of "Download Page" shifts when the first button is absent
         let n = a.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue + base
         switch n {
@@ -107,12 +107,12 @@ enum Updater {
     private static func install(_ zip: URL, tag: String, fallback: URL) {
         func fail(_ why: String) {
             DispatchQueue.main.async {
-                alert("Update failed", "\(why) Opening the download page instead.")
+                alert(tr("Update failed"), tr("%@ Opening the download page instead.", why))
                 NSWorkspace.shared.open(fallback)
             }
         }
         URLSession.shared.downloadTask(with: zip) { tmp, resp, err in
-            guard let tmp, (resp as? HTTPURLResponse)?.statusCode == 200 else { return fail("Download failed.") }
+            guard let tmp, (resp as? HTTPURLResponse)?.statusCode == 200 else { return fail(tr("Download failed.")) }
             let fm = FileManager.default
             let work = fm.temporaryDirectory.appendingPathComponent("FileExplorerUpdate-\(UUID().uuidString)")
             let archive = work.appendingPathComponent("update.zip")
@@ -120,7 +120,7 @@ enum Updater {
             do {
                 try fm.createDirectory(at: out, withIntermediateDirectories: true)
                 try fm.moveItem(at: tmp, to: archive)
-            } catch { return fail("Couldn't prepare the update.") }
+            } catch { return fail(tr("Couldn't prepare the update.")) }
             guard run("/usr/bin/ditto", ["-x", "-k", archive.path, out.path]) == 0,
                   let app = (try? fm.contentsOfDirectory(at: out, includingPropertiesForKeys: nil))?
                       .first(where: { $0.pathExtension == "app" }),
@@ -128,7 +128,7 @@ enum Updater {
                   info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier,
                   let ver = info["CFBundleShortVersionString"] as? String, isNewer(ver, than: current),
                   run("/usr/bin/codesign", ["--verify", app.path]) == 0
-            else { return fail("The downloaded update didn't pass verification.") }
+            else { return fail(tr("The downloaded update didn't pass verification.")) }
 
             // The helper outlives us: waits for this process to exit, swaps the bundle (restoring the
             // old one if the copy fails), strips quarantine and reopens the app.
@@ -144,14 +144,14 @@ enum Updater {
             open "$2"
             rm -rf "$5"
             """
-            do { try body.write(to: script, atomically: true, encoding: .utf8) } catch { return fail("Couldn't prepare the update.") }
+            do { try body.write(to: script, atomically: true, encoding: .utf8) } catch { return fail(tr("Couldn't prepare the update.")) }
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/bin/bash")
             p.arguments = [script.path, String(getpid()), Bundle.main.bundlePath, app.path,
                            work.appendingPathComponent("old.app").path, work.path]
             p.standardOutput = FileHandle.nullDevice
             p.standardError = FileHandle.nullDevice
-            do { try p.run() } catch { return fail("Couldn't start the installer.") }
+            do { try p.run() } catch { return fail(tr("Couldn't start the installer.")) }
             DispatchQueue.main.async { NSApp.terminate(nil) }
         }.resume()
     }

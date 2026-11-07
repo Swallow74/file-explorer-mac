@@ -191,7 +191,7 @@ struct GroupHeader: View {
             Text(title)
                 .font(Win.body(12, weight: .semibold))
                 .foregroundStyle(Win.text)
-            Text("\(count) item\(count == 1 ? "" : "s")")
+            Text(trp(count, "%@ item", "%@ items"))
                 .font(Win.body(11))
                 .foregroundStyle(Win.textSecondary)
             Spacer(minLength: 0)
@@ -210,7 +210,7 @@ struct EmptyFolderView: View {
     @ObservedObject var menus: MenuController
     var body: some View {
         VStack(spacing: 6) {
-            Text(ex.tab.searching ? "No items match your search." : "This folder is empty.")
+            Text(ex.tab.searching ? tr("No items match your search.") : tr("This folder is empty."))
                 .font(Win.body(12))
                 .foregroundStyle(Win.textSecondary)
         }
@@ -410,16 +410,16 @@ struct DetailsView: View {
 
     private func header(columns: DetailColumns) -> some View {
         HStack(spacing: 0) {
-            ColumnHeader(title: "Name", key: .name, width: $nameWidth,
+            ColumnHeader(title: tr("Name"), key: .name, width: $nameWidth,
                          effective: columns.name, ex: ex, leading: 34)
             if columns.date != nil {
-                ColumnHeader(title: "Date modified", key: .modified, width: $dateWidth, ex: ex)
+                ColumnHeader(title: tr("Date modified"), key: .modified, width: $dateWidth, ex: ex)
             }
             if columns.type != nil {
-                ColumnHeader(title: "Type", key: .type, width: $typeWidth, ex: ex)
+                ColumnHeader(title: tr("Type"), key: .type, width: $typeWidth, ex: ex)
             }
             if columns.size != nil {
-                ColumnHeader(title: "Size", key: .size, width: $sizeWidth, ex: ex, trailing: true)
+                ColumnHeader(title: tr("Size"), key: .size, width: $sizeWidth, ex: ex, trailing: true)
             }
             Spacer(minLength: 0)
         }

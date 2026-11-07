@@ -822,7 +822,30 @@ enum SelfTest {
         else { failed += 1; print("  FAIL  \(name)") }
     }
 
+    /// Every shipped language loads, keeps its placeholders and pluralises.
+    private static func checkLocalisation() {
+        check("language detection falls back to English",
+              L10n.detect(["xx-XX"]) == "en" && L10n.detect(["it-IT"]) == "it"
+              && L10n.detect(["zh-Hant-TW"]) == "zh-Hans" && L10n.detect(["nb-NO", "de-DE"]) == "de")
+        let sample = "Could not rename “%1$@”. %2$@"
+        for lang in L10n.languages where lang.code != "en" {
+            L10n.select(lang.code)
+            let t = L10n.translation(sample)
+            check("\(lang.code): strings load, placeholders keep order",
+                  t != nil && tr(sample, "A", "B").contains("A") && tr(sample, "A", "B").contains("B")
+                  && !tr(sample, "A", "B").contains("%"))
+            let one = trp(1, "%@ item", "%@ items"), many = trp(5, "%@ item", "%@ items")
+            check("\(lang.code): plural forms resolve", one.contains("1") && many.contains("5"))
+        }
+        L10n.select("ru")
+        check("ru plural: 1, 2 and 5 pick different forms",
+              Set([1, 2, 5].map { L10n.pluralIndex($0) }).count == 3 && L10n.pluralIndex(21) == 0 && L10n.pluralIndex(12) == 2)
+        L10n.select("en")
+        check("English keeps the source text", tr("Cancel") == "Cancel" && trp(2, "%@ item", "%@ items") == "2 items")
+    }
+
     private static func finish() {
+        checkLocalisation()
         print("\n\(passed) passed, \(failed) failed")
         exit(failed == 0 ? 0 : 1)
     }

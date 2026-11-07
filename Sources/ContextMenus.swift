@@ -7,11 +7,11 @@ enum ContextMenus {
     static func iconRow(_ ex: Explorer) -> MenuIconRow {
         let hasSel = !ex.tab.selection.isEmpty
         return MenuIconRow(items: [
-            (.cut,    "Cut",    hasSel, { ex.cutSelection() }),
-            (.copy,   "Copy",   hasSel, { ex.copySelection() }),
-            (.rename, "Rename", ex.tab.selection.count == 1, { ex.beginRename() }),
-            (.share,  "Share",           hasSel, { share(ex) }),
-            (.delete, "Delete", hasSel, { ex.deleteSelection(permanent: false) }),
+            (.cut,    tr("Cut"),    hasSel, { ex.cutSelection() }),
+            (.copy,   tr("Copy"),   hasSel, { ex.copySelection() }),
+            (.rename, tr("Rename"), ex.tab.selection.count == 1, { ex.beginRename() }),
+            (.share,  tr("Share"),           hasSel, { share(ex) }),
+            (.delete, tr("Delete"), hasSel, { ex.deleteSelection(permanent: false) }),
         ])
     }
 
@@ -21,68 +21,68 @@ enum ContextMenus {
         let isFolder = single && sel[0].isDirectory && !sel[0].isPackage
         var entries: [MenuEntry] = []
 
-        entries.append(MenuEntry(title: "Open", icon: .openWith, shortcut: "Enter") { ex.openSelection() })
+        entries.append(MenuEntry(title: tr("Open"), icon: .openWith, shortcut: "Enter") { ex.openSelection() })
         if isFolder {
-            entries.append(MenuEntry(title: "Open in new tab", icon: .plus) {
+            entries.append(MenuEntry(title: tr("Open in new tab"), icon: .plus) {
                 ex.go(to: sel[0].url, newTab: true)
             })
-            entries.append(MenuEntry(title: "Open in new window") {
+            entries.append(MenuEntry(title: tr("Open in new window")) {
                 AppState.shared.openNewWindow(at: .folder(sel[0].url))
             })
         } else if single {
-            entries.append(MenuEntry(title: "Open with", icon: .openWith, submenu: openWithMenu(sel[0])))
+            entries.append(MenuEntry(title: tr("Open with"), icon: .openWith, submenu: openWithMenu(sel[0])))
         }
         if isFolder {
             let url = sel[0].url
             let settings = Settings.shared
             let pinned = settings.isPinned(url) && !settings.hiddenPlaces.contains(url.path)
             entries.append(.sep())
-            entries.append(MenuEntry(title: pinned ? "Unpin from Quick access" : "Pin to Quick access",
+            entries.append(MenuEntry(title: pinned ? tr("Unpin from Quick access") : tr("Pin to Quick access"),
                                      icon: pinned ? .unpin : .pin) {
                 if pinned { settings.unpin(url) } else { settings.pin(url) }
             })
-            entries.append(MenuEntry(title: "Change icon…", icon: .palette) {
+            entries.append(MenuEntry(title: tr("Change icon…"), icon: .palette) {
                 ex.sheet = .folderIcon(sel[0])
             })
         }
         if single, Ops.isEjectable(sel[0].url) {
             let url = sel[0].url
             entries.append(.sep())
-            entries.append(MenuEntry(title: "Eject") { ex.eject(url) })
+            entries.append(MenuEntry(title: tr("Eject")) { ex.eject(url) })
         }
         if sel.count > 1 {
             entries.append(.sep())
-            entries.append(MenuEntry(title: "Rename \(sel.count) items…", icon: .rename,
+            entries.append(MenuEntry(title: trp(sel.count, "Rename %@ item…", "Rename %@ items…"), icon: .rename,
                                      shortcut: Settings.shared.display(for: .batchRename)) {
                 ex.sheet = .batchRename(sel)
             })
         }
         if sel.contains(where: { Archives.isArchive($0.url) }) || ex.isInsideArchive {
-            entries.append(MenuEntry(title: "Extract here", icon: .compress) {
+            entries.append(MenuEntry(title: tr("Extract here"), icon: .compress) {
                 ex.extractSelection()
             })
         }
         entries.append(.sep())
-        entries.append(MenuEntry(title: "Add to shelf", icon: .plus) {
+        entries.append(MenuEntry(title: tr("Add to shelf"), icon: .plus) {
             Shelf.shared.add(sel.map(\.url))
             Prefs.shared.showShelf = true
         })
-        entries.append(MenuEntry(title: "Copy as path", icon: .copy,
+        entries.append(MenuEntry(title: tr("Copy as path"), icon: .copy,
                                  shortcut: Settings.shared.display(for: .copyPath)) { ex.copyPath() })
-        entries.append(MenuEntry(title: "Compress to ZIP file", icon: .compress) { ex.zipSelection() })
-        entries.append(MenuEntry(title: "Create shortcut", icon: .link) {
+        entries.append(MenuEntry(title: tr("Compress to ZIP file"), icon: .compress) { ex.zipSelection() })
+        entries.append(MenuEntry(title: tr("Create shortcut"), icon: .link) {
             guard let dir = ex.currentDirectory else { return }
             Ops.makeShortcut(for: sel.map(\.url), in: dir); ex.reload()
         })
-        entries.append(MenuEntry(title: "Delete permanently", icon: .delete, shortcut: Settings.shared.display(for: .deletePermanent)) {
+        entries.append(MenuEntry(title: tr("Delete permanently"), icon: .delete, shortcut: Settings.shared.display(for: .deletePermanent)) {
             ex.deleteSelection(permanent: true)
         })
         entries.append(.sep())
-        entries.append(MenuEntry(title: "Show in Finder", icon: .eye) {
+        entries.append(MenuEntry(title: tr("Show in Finder"), icon: .eye) {
             NSWorkspace.shared.activateFileViewerSelecting(sel.map(\.url))
         })
         entries.append(.sep())
-        entries.append(MenuEntry(title: "Properties", icon: .properties, shortcut: Settings.shared.display(for: .properties)) {
+        entries.append(MenuEntry(title: tr("Properties"), icon: .properties, shortcut: Settings.shared.display(for: .properties)) {
             ex.showProperties()
         })
         return entries
@@ -91,41 +91,41 @@ enum ContextMenus {
     static func background(_ ex: Explorer) -> [MenuEntry] {
         let prefs = Prefs.shared
         return [
-            MenuEntry(title: "View", icon: .view, submenu: ViewMode.allCases.map { m in
-                MenuEntry(title: m.rawValue, radio: prefs.viewMode == m) { prefs.viewMode = m }
+            MenuEntry(title: tr("View"), icon: .view, submenu: ViewMode.allCases.map { m in
+                MenuEntry(title: m.label, radio: prefs.viewMode == m) { prefs.viewMode = m }
             }),
-            MenuEntry(title: "Sort by", icon: .sort, submenu: SortKey.allCases.map { k in
-                MenuEntry(title: k.rawValue, radio: prefs.sortKey == k) {
+            MenuEntry(title: tr("Sort by"), icon: .sort, submenu: SortKey.allCases.map { k in
+                MenuEntry(title: k.label, radio: prefs.sortKey == k) {
                     prefs.sortKey = k; ex.resort()
                 }
             } + [.sep(),
-                 MenuEntry(title: "Ascending", radio: prefs.sortAscending) { prefs.sortAscending = true; ex.resort() },
-                 MenuEntry(title: "Descending", radio: !prefs.sortAscending) { prefs.sortAscending = false; ex.resort() }]),
-            MenuEntry(title: "Refresh", icon: .refresh, shortcut: Settings.shared.display(for: .refresh)) { ex.reload() },
+                 MenuEntry(title: tr("Ascending"), radio: prefs.sortAscending) { prefs.sortAscending = true; ex.resort() },
+                 MenuEntry(title: tr("Descending"), radio: !prefs.sortAscending) { prefs.sortAscending = false; ex.resort() }]),
+            MenuEntry(title: tr("Refresh"), icon: .refresh, shortcut: Settings.shared.display(for: .refresh)) { ex.reload() },
             .sep(),
-            MenuEntry(title: "Paste", icon: .paste, shortcut: Settings.shared.display(for: .paste),
+            MenuEntry(title: tr("Paste"), icon: .paste, shortcut: Settings.shared.display(for: .paste),
                       enabled: Clipboard.hasFiles && ex.currentDirectory != nil) { ex.paste() },
-            MenuEntry(title: "Paste shortcut", icon: .link,
+            MenuEntry(title: tr("Paste shortcut"), icon: .link,
                       enabled: Clipboard.hasFiles && ex.currentDirectory != nil) { ex.pasteShortcut() },
-            MenuEntry(title: "Undo", icon: .undo, shortcut: Settings.shared.display(for: .undo), enabled: !ex.undoStack.isEmpty) { ex.undo() },
+            MenuEntry(title: tr("Undo"), icon: .undo, shortcut: Settings.shared.display(for: .undo), enabled: !ex.undoStack.isEmpty) { ex.undo() },
             .sep(),
-            MenuEntry(title: "Open in Terminal", icon: .terminal, enabled: ex.currentDirectory != nil) {
+            MenuEntry(title: tr("Open in Terminal"), icon: .terminal, enabled: ex.currentDirectory != nil) {
                 guard let dir = ex.currentDirectory else { return }
                 NSWorkspace.shared.open([dir],
                     withApplicationAt: URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"),
                     configuration: NSWorkspace.OpenConfiguration())
             },
             .sep(),
-            MenuEntry(title: "New", icon: .newItem, enabled: ex.currentDirectory != nil, submenu: [
-                MenuEntry(title: "Folder", icon: .newFolder, shortcut: Settings.shared.display(for: .newFolder)) { ex.newFolder() },
+            MenuEntry(title: tr("New"), icon: .newItem, enabled: ex.currentDirectory != nil, submenu: [
+                MenuEntry(title: tr("Folder"), icon: .newFolder, shortcut: Settings.shared.display(for: .newFolder)) { ex.newFolder() },
                 .sep(),
-                MenuEntry(title: "Text Document", icon: .document) { ex.newFile(named: "New Text Document.txt") },
-                MenuEntry(title: "Rich Text Document", icon: .document) { ex.newFile(named: "New Rich Text Document.rtf") },
+                MenuEntry(title: tr("Text Document"), icon: .document) { ex.newFile(named: "New Text Document.txt") },
+                MenuEntry(title: tr("Rich Text Document"), icon: .document) { ex.newFile(named: "New Rich Text Document.rtf") },
             ]),
             .sep(),
-            MenuEntry(title: "Properties", icon: .properties,
+            MenuEntry(title: tr("Properties"), icon: .properties,
                       shortcut: Settings.shared.display(for: .properties)) { ex.showProperties() },
-            MenuEntry(title: "Settings", icon: .settings,
+            MenuEntry(title: tr("Settings"), icon: .settings,
                       shortcut: Settings.shared.display(for: .openSettings)) { ex.sheet = .settings },
         ]
     }
@@ -138,7 +138,7 @@ enum ContextMenus {
                                         configuration: NSWorkspace.OpenConfiguration())
             }
         }
-        if entries.isEmpty { entries = [MenuEntry(title: "No apps available", enabled: false)] }
+        if entries.isEmpty { entries = [MenuEntry(title: tr("No apps available"), enabled: false)] }
         return entries
     }
 

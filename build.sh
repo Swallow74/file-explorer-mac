@@ -55,12 +55,23 @@ iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 build/makeicon "$APP/Contents/Resources/AppIcon.png" 1024 >/dev/null
 rm -f build/makeicon
 
+echo "==> Copying translations"
+# One <code>.lproj/Localizable.strings per language; English is the built-in text.
+LOCALIZATIONS="<string>en</string>"
+for dir in Resources/*.lproj; do
+    [ -d "$dir" ] || continue
+    cp -R "$dir" "$APP/Contents/Resources/"
+    LOCALIZATIONS="$LOCALIZATIONS<string>$(basename "$dir" .lproj)</string>"
+done
+
 echo "==> Writing Info.plist"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleDevelopmentRegion</key> <string>en</string>
+    <key>CFBundleLocalizations</key>     <array>$LOCALIZATIONS</array>
     <key>CFBundleName</key>              <string>$NAME</string>
     <key>CFBundleDisplayName</key>       <string>$NAME</string>
     <key>CFBundleExecutable</key>        <string>FileExplorer</string>

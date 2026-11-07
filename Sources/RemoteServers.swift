@@ -106,9 +106,9 @@ struct ConnectServerDialog: View {
     @State private var note: String?
 
     var body: some View {
-        WinDialog(title: "Connect to server", width: 500, onClose: onClose) {
+        WinDialog(title: tr("Connect to server"), width: 500, onClose: onClose) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Address")
+                Text(tr("Address"))
                     .font(Win.body(11)).foregroundStyle(Win.textTertiary)
                 HStack(spacing: 8) {
                     TextField("smb://server/share", text: $address)
@@ -127,7 +127,7 @@ struct ConnectServerDialog: View {
                     }
                 }
 
-                Text("SMB, AFP, NFS, FTP and WebDAV. macOS handles the sign-in, so no password is typed into File Explorer.")
+                Text(tr("SMB, AFP, NFS, FTP and WebDAV. macOS handles the sign-in, so no password is typed into File Explorer."))
                     .font(Win.body(11)).foregroundStyle(Win.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -136,7 +136,7 @@ struct ConnectServerDialog: View {
                 }
 
                 if !bookmarks.isEmpty {
-                    Text("Recent servers")
+                    Text(tr("Recent servers"))
                         .font(Win.body(11, weight: .semibold)).foregroundStyle(Win.textSecondary)
                     ScrollView {
                         VStack(spacing: 4) {
@@ -151,7 +151,7 @@ struct ConnectServerDialog: View {
                                             .lineLimit(1)
                                     }
                                     Spacer(minLength: 8)
-                                    WinButton(tooltip: "Forget", padding: 5, height: 24) {
+                                    WinButton(tooltip: tr("Forget"), padding: 5, height: 24) {
                                         RemoteServers.forget(bookmark)
                                         bookmarks = RemoteServers.recent
                                     } content: {
@@ -171,18 +171,18 @@ struct ConnectServerDialog: View {
             }
             .padding(18)
         } footer: {
-            WinDialogButton(title: connecting ? "Connecting…" : "Connect", primary: true,
+            WinDialogButton(title: connecting ? tr("Connecting…") : tr("Connect"), primary: true,
                             enabled: !connecting && address.contains("://")
                                 && address.count > 7) {
                 connect()
             }
-            WinDialogButton(title: "Cancel", action: onClose)
+            WinDialogButton(title: tr("Cancel"), action: onClose)
         }
     }
 
     private func connect() {
         connecting = true
-        note = "Waiting for macOS to mount the share."
+        note = tr("Waiting for macOS to mount the share.")
         RemoteServers.connect(address) { mounted in
             connecting = false
             bookmarks = RemoteServers.recent
@@ -190,7 +190,7 @@ struct ConnectServerDialog: View {
                 AppState.shared.active?.go(to: mounted)
                 onClose()
             } else {
-                note = "No new volume appeared. If the sign-in window is still open, finish it and the share will show up under Network."
+                note = tr("No new volume appeared. If the sign-in window is still open, finish it and the share will show up under Network.")
             }
         }
     }

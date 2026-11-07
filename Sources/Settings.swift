@@ -49,7 +49,7 @@ struct KeyChord: Codable, Hashable {
 
     var keyName: String {
         if let char { return char.uppercased() }
-        if let code { return KeyChord.names[code] ?? "Key \(code)" }
+        if let code { return KeyChord.names[code] ?? tr("Key %@", code) }
         return "—"
     }
 
@@ -86,73 +86,73 @@ enum Command: String, Codable, CaseIterable {
 
     var title: String {
         switch self {
-        case .copy: return "Copy"
-        case .cut: return "Cut"
-        case .paste: return "Paste"
-        case .pasteShortcut: return "Paste shortcut"
-        case .copyPath: return "Copy as path"
-        case .undo: return "Undo"
-        case .redo: return "Redo"
-        case .selectAll: return "Select all"
-        case .selectNone: return "Select none"
-        case .invertSelection: return "Invert selection"
-        case .rename: return "Rename"
-        case .delete: return "Delete (Recycle Bin)"
-        case .deletePermanent: return "Delete permanently"
-        case .newFolder: return "New folder"
-        case .newTextDocument: return "New text document"
-        case .compress: return "Compress to ZIP"
-        case .createShortcut: return "Create shortcut"
-        case .newTab: return "New tab"
-        case .closeTab: return "Close tab"
-        case .reopenTab: return "Reopen closed tab"
-        case .nextTab: return "Next tab"
-        case .prevTab: return "Previous tab"
-        case .newWindow: return "New window"
-        case .goHome: return "Go to Home"
-        case .goDesktop: return "Go to Desktop folder"
-        case .showDesktop: return "Show desktop (hide all windows)"
-        case .toggleDualPane: return "Dual pane"
-        case .switchPane: return "Switch pane"
-        case .swapPanes: return "Swap panes"
-        case .copyToOtherPane: return "Copy to the other pane"
-        case .moveToOtherPane: return "Move to the other pane"
-        case .batchRename: return "Rename many items"
-        case .compareFolders: return "Compare and sync folders"
-        case .connectServer: return "Connect to server"
-        case .workspaces: return "Workspaces"
-        case .toggleShelf: return "Shelf"
-        case .extractArchive: return "Extract archive"
-        case .goDownloads: return "Go to Downloads"
-        case .goDocuments: return "Go to Documents"
-        case .goPictures: return "Go to Pictures"
-        case .goMusic: return "Go to Music"
-        case .goVideos: return "Go to Videos"
-        case .goThisPC: return "Go to This PC"
-        case .refresh: return "Refresh"
-        case .back: return "Back"
-        case .forward: return "Forward"
-        case .up: return "Up one level"
-        case .focusAddress: return "Focus address bar"
-        case .focusSearch: return "Focus search"
-        case .properties: return "Properties"
-        case .openTerminal: return "Open in Terminal"
-        case .showInFinder: return "Show in Finder"
-        case .toggleHidden: return "Show hidden items"
-        case .toggleExtensions: return "Show file name extensions"
-        case .toggleNavPane: return "Navigation pane"
-        case .toggleDetailsPane: return "Details pane"
-        case .togglePreviewPane: return "Preview pane"
-        case .fullScreen: return "Full screen"
-        case .openSettings: return "Settings"
-        case .viewExtraLarge: return "Extra large icons"
-        case .viewLarge: return "Large icons"
-        case .viewMedium: return "Medium icons"
-        case .viewSmall: return "Small icons"
-        case .viewList: return "List"
-        case .viewDetails: return "Details"
-        case .viewTiles: return "Tiles"
-        case .viewContent: return "Content"
+        case .copy: return tr("Copy")
+        case .cut: return tr("Cut")
+        case .paste: return tr("Paste")
+        case .pasteShortcut: return tr("Paste shortcut")
+        case .copyPath: return tr("Copy as path")
+        case .undo: return tr("Undo")
+        case .redo: return tr("Redo")
+        case .selectAll: return tr("Select all")
+        case .selectNone: return tr("Select none")
+        case .invertSelection: return tr("Invert selection")
+        case .rename: return tr("Rename")
+        case .delete: return tr("Delete (Recycle Bin)")
+        case .deletePermanent: return tr("Delete permanently")
+        case .newFolder: return tr("New folder")
+        case .newTextDocument: return tr("New text document")
+        case .compress: return tr("Compress to ZIP")
+        case .createShortcut: return tr("Create shortcut")
+        case .newTab: return tr("New tab")
+        case .closeTab: return tr("Close tab")
+        case .reopenTab: return tr("Reopen closed tab")
+        case .nextTab: return tr("Next tab")
+        case .prevTab: return tr("Previous tab")
+        case .newWindow: return tr("New window")
+        case .goHome: return tr("Go to Home")
+        case .goDesktop: return tr("Go to Desktop folder")
+        case .showDesktop: return tr("Show desktop (hide all windows)")
+        case .toggleDualPane: return tr("Dual pane")
+        case .switchPane: return tr("Switch pane")
+        case .swapPanes: return tr("Swap panes")
+        case .copyToOtherPane: return tr("Copy to the other pane")
+        case .moveToOtherPane: return tr("Move to the other pane")
+        case .batchRename: return tr("Rename many items")
+        case .compareFolders: return tr("Compare and sync folders")
+        case .connectServer: return tr("Connect to server")
+        case .workspaces: return tr("Workspaces")
+        case .toggleShelf: return tr("Shelf")
+        case .extractArchive: return tr("Extract archive")
+        case .goDownloads: return tr("Go to Downloads")
+        case .goDocuments: return tr("Go to Documents")
+        case .goPictures: return tr("Go to Pictures")
+        case .goMusic: return tr("Go to Music")
+        case .goVideos: return tr("Go to Videos")
+        case .goThisPC: return tr("Go to This PC")
+        case .refresh: return tr("Refresh")
+        case .back: return tr("Back")
+        case .forward: return tr("Forward")
+        case .up: return tr("Up one level")
+        case .focusAddress: return tr("Focus address bar")
+        case .focusSearch: return tr("Focus search")
+        case .properties: return tr("Properties")
+        case .openTerminal: return tr("Open in Terminal")
+        case .showInFinder: return tr("Show in Finder")
+        case .toggleHidden: return tr("Show hidden items")
+        case .toggleExtensions: return tr("Show file name extensions")
+        case .toggleNavPane: return tr("Navigation pane")
+        case .toggleDetailsPane: return tr("Details pane")
+        case .togglePreviewPane: return tr("Preview pane")
+        case .fullScreen: return tr("Full screen")
+        case .openSettings: return tr("Settings")
+        case .viewExtraLarge: return tr("Extra large icons")
+        case .viewLarge: return tr("Large icons")
+        case .viewMedium: return tr("Medium icons")
+        case .viewSmall: return tr("Small icons")
+        case .viewList: return tr("List")
+        case .viewDetails: return tr("Details")
+        case .viewTiles: return tr("Tiles")
+        case .viewContent: return tr("Content")
         }
     }
 
@@ -288,6 +288,8 @@ enum ThemeMode: String, Codable, CaseIterable {
     case light = "Light"
     case dark = "Dark"
 
+    var label: String { tr(rawValue) }
+
     var appearance: NSAppearance? {
         switch self {
         case .system: return nil
@@ -311,22 +313,24 @@ final class Settings: ObservableObject {
     private let d = Store.defaults
 
     @Published var theme: ThemeMode { didSet { save(); applyTheme() } }
+    /// A language code, or `L10n.system` to follow macOS.
+    @Published var language: String { didSet { save(); applyLanguage() } }
     @Published var accentID: String { didSet { save() } }
     @Published var bindings: [String: [KeyChord]] { didSet { save() } }
     @Published var folderStyles: [String: FolderStyle] { didSet { save() } }
     @Published var pinned: [String] { didSet { save() } }
     @Published var hiddenPlaces: Set<String> { didSet { save() } }
 
-    static let accents: [AccentOption] = [
-        AccentOption(id: "blue",    name: "Windows blue", dark: "60CDFF", light: "0067C0"),
-        AccentOption(id: "teal",    name: "Teal",         dark: "5FD9CF", light: "00786B"),
-        AccentOption(id: "green",   name: "Green",        dark: "6CCB5F", light: "107C10"),
-        AccentOption(id: "orange",  name: "Orange",       dark: "FFB556", light: "C2540A"),
-        AccentOption(id: "red",     name: "Red",          dark: "FF8A80", light: "C42B1C"),
-        AccentOption(id: "pink",    name: "Pink",         dark: "FF9DC4", light: "C1358A"),
-        AccentOption(id: "purple",  name: "Purple",       dark: "C9A2FF", light: "6B4BA8"),
-        AccentOption(id: "graphite", name: "Graphite",    dark: "C8C8C8", light: "4A4A4A"),
-    ]
+    static var accents: [AccentOption] { [
+        AccentOption(id: "blue",    name: tr("Windows blue"), dark: "60CDFF", light: "0067C0"),
+        AccentOption(id: "teal",    name: tr("Teal"),         dark: "5FD9CF", light: "00786B"),
+        AccentOption(id: "green",   name: tr("Green"),        dark: "6CCB5F", light: "107C10"),
+        AccentOption(id: "orange",  name: tr("Orange"),       dark: "FFB556", light: "C2540A"),
+        AccentOption(id: "red",     name: tr("Red"),          dark: "FF8A80", light: "C42B1C"),
+        AccentOption(id: "pink",    name: tr("Pink"),         dark: "FF9DC4", light: "C1358A"),
+        AccentOption(id: "purple",  name: tr("Purple"),       dark: "C9A2FF", light: "6B4BA8"),
+        AccentOption(id: "graphite", name: tr("Graphite"),    dark: "C8C8C8", light: "4A4A4A"),
+    ] }
 
     var accent: AccentOption {
         Settings.accents.first { $0.id == accentID } ?? Settings.accents[0]
@@ -334,6 +338,12 @@ final class Settings: ObservableObject {
 
     private init() {
         theme = ThemeMode(rawValue: d.string(forKey: "theme") ?? "") ?? .system
+        // The self-test and the demo compare against English text.
+        let env = ProcessInfo.processInfo.environment
+        let scripted = env["WINEXP_SELFTEST"] != nil || env["WINEXP_DEMO"] != nil
+        let chosen = env["WINEXP_LANG"] ?? (scripted ? "en" : d.string(forKey: "language") ?? L10n.system)
+        language = chosen
+        L10n.select(chosen)
         accentID = d.string(forKey: "accentID") ?? "blue"
         bindings = Settings.decode([String: [KeyChord]].self, d.data(forKey: "bindings")) ?? [:]
         folderStyles = Settings.decode([String: FolderStyle].self, d.data(forKey: "folderStyles")) ?? [:]
@@ -348,6 +358,7 @@ final class Settings: ObservableObject {
 
     private func save() {
         d.set(theme.rawValue, forKey: "theme")
+        d.set(language, forKey: "language")
         d.set(accentID, forKey: "accentID")
         d.set(try? JSONEncoder().encode(bindings), forKey: "bindings")
         d.set(try? JSONEncoder().encode(folderStyles), forKey: "folderStyles")
@@ -357,6 +368,16 @@ final class Settings: ObservableObject {
 
     func applyTheme() {
         NSApp.appearance = theme.appearance
+    }
+
+    func applyLanguage() {
+        L10n.select(language)
+        // System panels (Open, Save…) pick their language at launch.
+        if d === UserDefaults.standard {
+            if language == L10n.system { d.removeObject(forKey: "AppleLanguages") }
+            else { d.set([L10n.code], forKey: "AppleLanguages") }
+        }
+        NotificationCenter.default.post(name: .languageChanged, object: nil)
     }
 
     // MARK: Shortcuts
@@ -438,4 +459,8 @@ final class Settings: ObservableObject {
     func togglePin(_ url: URL) {
         if isPinned(url) && !hiddenPlaces.contains(url.path) { unpin(url) } else { pin(url) }
     }
+}
+
+extension Notification.Name {
+    static let languageChanged = Notification.Name("winexp.languageChanged")
 }

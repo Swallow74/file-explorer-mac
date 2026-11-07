@@ -52,16 +52,16 @@ struct ShelfPane: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 Glyph(icon: .compress, size: 15, color: Win.textSecondary, weight: 1.15)
-                Text("Shelf").font(Win.body(12, weight: .semibold)).foregroundStyle(Win.text)
+                Text(tr("Shelf")).font(Win.body(12, weight: .semibold)).foregroundStyle(Win.text)
                 Spacer(minLength: 4)
                 if !shelf.items.isEmpty {
-                    WinButton(tooltip: "Empty the shelf", padding: 6, height: 24) {
+                    WinButton(tooltip: tr("Empty the shelf"), padding: 6, height: 24) {
                         shelf.clear()
                     } content: {
                         Glyph(icon: .delete, size: 13, color: Win.textSecondary, weight: 1.15)
                     }
                 }
-                WinButton(tooltip: "Hide the shelf", padding: 6, height: 24) {
+                WinButton(tooltip: tr("Hide the shelf"), padding: 6, height: 24) {
                     Prefs.shared.showShelf = false
                 } content: {
                     Glyph(icon: .tabClose, size: 11, color: Win.textSecondary, weight: 1.2)
@@ -74,7 +74,7 @@ struct ShelfPane: View {
 
             if shelf.items.isEmpty {
                 VStack(spacing: 6) {
-                    Text("Drop files here to hold on to them.")
+                    Text(tr("Drop files here to hold on to them."))
                         .font(Win.body(11)).foregroundStyle(Win.textTertiary)
                         .multilineTextAlignment(.center)
                 }
@@ -94,21 +94,21 @@ struct ShelfPane: View {
             Divider().overlay(Win.divider)
 
             HStack(spacing: 6) {
-                WinButton(tooltip: "Copy everything on the shelf into this folder",
+                WinButton(tooltip: tr("Copy everything on the shelf into this folder"),
                           enabled: !shelf.items.isEmpty && ex.currentDirectory != nil,
                           padding: 8, height: 28) {
                     send(kind: .copy)
                 } content: {
-                    Text("Copy here").font(Win.body(11)).foregroundStyle(Win.text)
+                    Text(tr("Copy here")).font(Win.body(11)).foregroundStyle(Win.text)
                 }
                 .overlay(WinRR(radius: 4).stroke(Win.stroke, lineWidth: 1))
 
-                WinButton(tooltip: "Move everything on the shelf into this folder",
+                WinButton(tooltip: tr("Move everything on the shelf into this folder"),
                           enabled: !shelf.items.isEmpty && ex.currentDirectory != nil,
                           padding: 8, height: 28) {
                     send(kind: .move)
                 } content: {
-                    Text("Move here").font(Win.body(11)).foregroundStyle(Win.text)
+                    Text(tr("Move here")).font(Win.body(11)).foregroundStyle(Win.text)
                 }
                 .overlay(WinRR(radius: 4).stroke(Win.stroke, lineWidth: 1))
             }

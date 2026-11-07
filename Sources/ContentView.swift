@@ -17,6 +17,10 @@ struct ContentView: View {
     }
 
     var body: some View {
+        rootBody.id(settings.language)   // rebuild every label when the language changes
+    }
+
+    private var rootBody: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
                 VStack(spacing: 0) {
@@ -290,7 +294,7 @@ struct PaneView: View {
                     .foregroundStyle(isActive ? Win.text : Win.textSecondary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
-                Text("\(ex.tab.items.count) items")
+                Text(trp(ex.tab.items.count, "%@ item", "%@ items"))
                     .font(Win.body(11)).foregroundStyle(Win.textTertiary)
             }
             .padding(.horizontal, 10)
