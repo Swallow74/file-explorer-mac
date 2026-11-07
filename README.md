@@ -12,6 +12,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
 [![Tests](https://img.shields.io/badge/tests-109%20passing-6CCB5F?style=flat-square)](#tests)
+[![Build](https://github.com/Swallow74/windows-explorer-mac/actions/workflows/build.yml/badge.svg)](https://github.com/Swallow74/windows-explorer-mac/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
 <img src="docs/demo.gif" width="900" alt="Browsing folders, switching view modes, the context menu, and changing theme and accent colour">
