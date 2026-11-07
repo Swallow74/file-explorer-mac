@@ -191,8 +191,22 @@ enum Ops {
         return out
     }
 
-    static func deleteForever(_ urls: [URL]) {
-        for u in urls { try? fm.removeItem(at: u) }
+    /// Deletes through a file coordinator, which iCloud Drive and other File
+    /// Provider folders require; returns the first error so the caller can show it.
+    @discardableResult
+    static func deleteForever(_ urls: [URL]) -> Error? {
+        var firstError: Error?
+        for u in urls {
+            var coordError: NSError?
+            var removeError: Error?
+            NSFileCoordinator(filePresenter: nil).coordinate(
+                writingItemAt: u, options: .forDeleting, error: &coordError
+            ) { target in
+                do { try fm.removeItem(at: target) } catch { removeError = error }
+            }
+            if firstError == nil { firstError = removeError ?? coordError }
+        }
+        return firstError
     }
 
     static func newFolder(in dir: URL, name: String = "New folder") throws -> URL {
@@ -899,7 +913,9 @@ final class Explorer: ObservableObject {
 
     func performDelete(_ items: [FileItem], permanent: Bool) {
         if permanent {
-            Ops.deleteForever(items.map(\.url))
+            if let error = Ops.deleteForever(items.map(\.url)) {
+                sheet = .error("Could not delete: \(error.localizedDescription)")
+            }
         } else {
             let trashed = Ops.trash(items.map(\.url))
             if !trashed.isEmpty { push(.trash(items: trashed)) }
