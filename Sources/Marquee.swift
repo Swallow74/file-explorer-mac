@@ -109,7 +109,7 @@ final class MarqueeController: ObservableObject {
     func handle(_ event: NSEvent) -> Bool {
         switch event.type {
         case .leftMouseDown:
-            guard event.clickCount == 1 else { return false }
+            guard event.clickCount == 1, !MenuController.anyOpen else { return false }
             let flags = event.modifierFlags
             let additive = flags.contains(.shift) || flags.contains(.command)
                 || flags.contains(.control)

@@ -54,7 +54,10 @@ final class MenuController: ObservableObject {
         var point: CGPoint? = nil
     }
 
-    @Published var open: Open?
+    /// True while any menu is showing: the marquee must not steal clicks that land on it.
+    static var anyOpen = false
+
+    @Published var open: Open? { didSet { MenuController.anyOpen = open != nil } }
 
     func show(id: String, anchor: CGRect, entries: [MenuEntry], width: CGFloat = 240,
               iconRow: MenuIconRow? = nil, point: CGPoint? = nil) {
