@@ -133,6 +133,8 @@ Every shortcut works with **`Ctrl`** (as on Windows) *and* **`Cmd`** (as Mac mus
 | `Shift+Delete` | Delete permanently |
 | `Ctrl+Shift+N` | New folder |
 | `Enter` | Open |
+| `Space` | Quick Look preview (`Space`/`Esc` closes) |
+| `Ctrl+Space` | Toggle the item in the selection |
 | `Alt+Enter` | Properties |
 
 </td><td valign="top">
@@ -294,11 +296,13 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Progress dialog** modelled on the Windows 11 copy window: percentage, live speed graph, name, time left and item count.
 - **APFS clones** for same-volume copies: instant at any size, free until modified. exFAT and network mounts fall back to the byte copy.
 - **Eject** for external drives and network shares, from the context menu and the sidebar.
+- **Delete on network shares**: volumes without a Recycle Bin (SMB/NAS) offer a permanent delete instead of failing silently.
 - Safer transfers: a failed cross-volume move records its orphaned copy so undo can remove it, same-volume moves advance the bar per item, cancel no longer stalls the main thread, copy collisions always get the `- Copy` suffix.
 - Undo and redo are honest: per-item failures are reported, only what really reverted is redoable, undoing *New folder* restores the same items, and every tab showing a touched folder refreshes.
 - **Hostile archives refused.** A zip with a member named `-P` could write outside the extraction folder; entry names are now passed to `bsdtar` after `--`, and a folder copied into itself is rejected.
 
 **Navigation and views**
+- **Sidebar favourites**: drag a folder onto the navigation pane (not onto a row) to pin it, as in the Finder; right-click > *Unpin from Quick access* removes it; the sidebar updates at once.
 - **Group by** is real: Name, Type, Date modified (Today, Yesterday, Earlier this week, and so on) and Size (Tiny to Gigantic), with collapsible section headers in Details, as in Explorer. Arrow keys follow the on-screen order, including folded groups.
 - **Navigation pane follows you**: the folder tree expands on its own down the path you are viewing, and is cached so it does not flicker or rescan.
 - **User folders resolved through the system**: Desktop, Documents and the others still work when they have been moved or are symlinks.
@@ -307,10 +311,8 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - `Ctrl+Scroll` zooms icons in discrete steps instead of a continuous, jumpy scale.
 
 **Selection and input**
-- `Shift`/`Ctrl`/`Cmd`+click uses the modifiers held **at press time**, so a quick click-and-release no longer collapses a multi-selection.
 - **Quick Look**: `Space` previews the selected files like in the Finder (`Space` or `Esc` closes, arrows move along the selection); `Ctrl+Space` toggles the selection.
-- **Sidebar favourites**: drag a folder onto the navigation pane (not onto a row) to pin it, as in the Finder; right-click > *Unpin* removes it.
-- Deleting on volumes without a Recycle Bin (SMB/NAS) offers a permanent delete instead of failing silently.
+- `Shift`/`Ctrl`/`Cmd`+click uses the modifiers held **at press time**, so a quick click-and-release no longer collapses a multi-selection.
 - Rubber-band selection no longer swallows clicks on open menus, and picks the right window when two Explorers are open.
 - Inline rename commits on focus loss; case-only renames work on case-insensitive APFS; shortcut re-mapping detects real conflicts.
 - Column, pane-divider and details-pane resize track the pointer 1:1 (they used to compound).
