@@ -70,6 +70,7 @@ struct TitleBar: View {
             },
             .sep(),
             MenuEntry(title: "Close tab", shortcut: "Ctrl+W") { ex.closeTab(i) },
+            MenuEntry(title: "Reopen closed tab", shortcut: "Ctrl+Shift+T") { ex.reopenClosedTab() },
         ]
     }
 }

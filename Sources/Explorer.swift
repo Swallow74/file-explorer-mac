@@ -654,11 +654,25 @@ final class Explorer: ObservableObject {
         reload()
     }
 
+    /// Tabs closed in this pane, newest last, for Ctrl+Shift+T.
+    private var closedTabs: [TabState] = []
+
+    func reopenClosedTab() {
+        guard var t = closedTabs.popLast() else { NSSound.beep(); return }
+        t.items = []; t.selection = []; t.anchor = nil; t.lead = nil
+        t.search = ""; t.searching = false; t.editing = nil
+        tabs.append(t)
+        active = tabs.count - 1
+        reload()
+    }
+
     func closeTab(_ idx: Int) {
         guard tabs.count > 1 else {
             NSApp.keyWindow?.performClose(nil)
             return
         }
+        closedTabs.append(tabs[idx])
+        if closedTabs.count > 10 { closedTabs.removeFirst() }
         tabs.remove(at: idx)
         if idx < active { active -= 1 } else { active = min(active, tabs.count - 1) }
         reload()

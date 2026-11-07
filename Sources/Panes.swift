@@ -140,31 +140,75 @@ struct TransferRow: View {
         }
     }
 
+    private var route: String {
+        let to = job.destination.map { Places.displayName(for: $0) } ?? "Recycle Bin"
+        let count = job.sources.count
+        let what = count == 1 ? "“\(job.sources[0].lastPathComponent)”" : "\(count) items"
+        if let from = job.sources.first?.deletingLastPathComponent(), job.destination != nil {
+            return "\(job.kind.rawValue) \(what) from \(Places.displayName(for: from)) to \(to)"
+        }
+        return "\(job.kind.rawValue) \(what)"
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Glyph(icon: job.kind == .move ? .cut : .copy, size: 16,
-                  color: Win.textSecondary, weight: 1.15)
-                .padding(.top, 2)
+        if job.isActive { active } else { done }
+    }
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text("\(job.kind.rawValue) to \(job.destination.map { Places.displayName(for: $0) } ?? "Recycle Bin")")
-                    .font(Win.body(12)).foregroundStyle(Win.text).lineLimit(1)
-                if job.isActive {
-                    ProgressTrack(fraction: job.fraction).frame(height: 4)
-                }
-                Text(job.currentName.isEmpty ? statusText : "\(job.currentName)  ·  \(statusText)")
-                    .font(Win.body(11))
-                    .foregroundStyle(job.state == .finished ? Win.textTertiary : Win.textSecondary)
-                    .lineLimit(1)
-            }
-
-            if job.isActive {
+    /// The Windows 11 copy dialog: percentage, speed graph, name / time / items.
+    private var active: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(job.state == .waiting ? "Waiting…" : "\(job.percent)% complete")
+                    .font(Win.body(15, weight: .semibold)).foregroundStyle(Win.text)
+                Spacer()
                 WinButton(tooltip: "Cancel", padding: 6, height: 24) {
                     TransferQueue.shared.cancel(job.id)
                 } content: {
                     Glyph(icon: .tabClose, size: 11, color: Win.textSecondary, weight: 1.3)
                 }
-            } else if case .failed = job.state {
+            }
+            Text(route).font(Win.body(12)).foregroundStyle(Win.textSecondary).lineLimit(2)
+            ZStack(alignment: .topTrailing) {
+                SpeedGraph(samples: job.speeds, fraction: job.fraction)
+                Text("Speed: \(FileItem.friendlySize(Int64(job.currentSpeed)))/s")
+                    .font(Win.body(11)).foregroundStyle(Win.textSecondary)
+                    .padding(.horizontal, 8).padding(.vertical, 5)
+            }
+            .frame(height: 64)
+            .clipShape(WinRR(radius: 4))
+            .overlay(WinRR(radius: 4).stroke(Win.stroke, lineWidth: 1))
+            ProgressTrack(fraction: job.fraction).frame(height: 4)
+            VStack(alignment: .leading, spacing: 2) {
+                detail("Name", job.currentName.isEmpty ? "—" : job.currentName)
+                detail("Time remaining", job.remainingText)
+                detail("Items remaining", "\(max(0, job.filesTotal - job.filesDone)) (\(FileItem.friendlySize(max(0, job.bytesTotal - job.bytesDone))))")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+
+    private func detail(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("\(label):").font(Win.body(11)).foregroundStyle(Win.textTertiary)
+            Text(value).font(Win.body(11)).foregroundStyle(Win.textSecondary)
+                .lineLimit(1).truncationMode(.middle)
+        }
+    }
+
+    private var done: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Glyph(icon: job.kind == .move ? .cut : .copy, size: 16,
+                  color: Win.textSecondary, weight: 1.15)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(route).font(Win.body(12)).foregroundStyle(Win.text).lineLimit(2)
+                Text(statusText).font(Win.body(11))
+                    .foregroundStyle(job.state == .finished ? Win.textTertiary : Win.textSecondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            if case .failed = job.state {
                 Glyph(icon: .info, size: 14, color: Win.danger, weight: 1.2)
             } else if job.state == .finished {
                 Glyph(icon: .checkmark, size: 14, color: Win.accent, weight: 1.4)
@@ -172,6 +216,37 @@ struct TransferRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
+    }
+}
+
+/// Throughput over the last 30 seconds, filled up to the current progress.
+struct SpeedGraph: View {
+    let samples: [Double]
+    let fraction: Double
+
+    var body: some View {
+        Canvas { ctx, size in
+            ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width * fraction, height: size.height)),
+                     with: .color(Win.accent.opacity(0.10)))
+            guard samples.count > 1 else { return }
+            let peak = max(samples.max() ?? 1, 1) * 1.2
+            let step = size.width / 59
+            let x0 = size.width * fraction - step * CGFloat(samples.count - 1)
+            func point(_ i: Int) -> CGPoint {
+                CGPoint(x: max(0, x0 + step * CGFloat(i)),
+                        y: size.height - CGFloat(samples[i] / peak) * (size.height - 4))
+            }
+            var line = Path()
+            line.move(to: point(0))
+            for i in 1..<samples.count { line.addLine(to: point(i)) }
+            var area = line
+            area.addLine(to: CGPoint(x: point(samples.count - 1).x, y: size.height))
+            area.addLine(to: CGPoint(x: point(0).x, y: size.height))
+            area.closeSubpath()
+            ctx.fill(area, with: .color(Win.accent.opacity(0.28)))
+            ctx.stroke(line, with: .color(Win.accent), lineWidth: 1.5)
+        }
+        .background(Win.field)
     }
 }
 

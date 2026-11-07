@@ -73,7 +73,7 @@ enum Command: String, Codable, CaseIterable {
     case undo, redo
     case selectAll, selectNone, invertSelection
     case rename, delete, deletePermanent, newFolder, newTextDocument, compress, createShortcut
-    case newTab, closeTab, nextTab, prevTab, newWindow
+    case newTab, closeTab, reopenTab, nextTab, prevTab, newWindow
     case refresh, back, forward, up, focusAddress, focusSearch
     case goHome, goDesktop, goDownloads, goDocuments, goPictures, goMusic, goVideos, goThisPC
     case showDesktop
@@ -105,6 +105,7 @@ enum Command: String, Codable, CaseIterable {
         case .createShortcut: return "Create shortcut"
         case .newTab: return "New tab"
         case .closeTab: return "Close tab"
+        case .reopenTab: return "Reopen closed tab"
         case .nextTab: return "Next tab"
         case .prevTab: return "Previous tab"
         case .newWindow: return "New window"
@@ -163,7 +164,7 @@ enum Command: String, Codable, CaseIterable {
             return "Selection"
         case .rename, .delete, .deletePermanent, .newFolder, .newTextDocument, .compress, .createShortcut:
             return "Files"
-        case .newTab, .closeTab, .nextTab, .prevTab, .newWindow, .fullScreen, .openSettings:
+        case .newTab, .closeTab, .reopenTab, .nextTab, .prevTab, .newWindow, .fullScreen, .openSettings:
             return "Tabs & windows"
         case .refresh, .back, .forward, .up, .focusAddress, .focusSearch, .properties,
              .openTerminal, .showInFinder,
@@ -203,6 +204,7 @@ enum Command: String, Codable, CaseIterable {
         case .createShortcut: return []
         case .newTab:         return [KeyChord(char: "t", ctrl: true)]
         case .closeTab:       return [KeyChord(char: "w", ctrl: true)]
+        case .reopenTab:      return [KeyChord(char: "t", ctrl: true, shift: true)]
         case .nextTab:        return [KeyChord(code: 48, ctrl: true)]
         case .prevTab:        return [KeyChord(code: 48, ctrl: true, shift: true)]
         case .newWindow:      return [KeyChord(char: "n", ctrl: true)]

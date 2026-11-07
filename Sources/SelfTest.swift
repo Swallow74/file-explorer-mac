@@ -25,6 +25,17 @@ enum SelfTest {
         }
         ex.go(to: root)
 
+        // Reopen closed tab
+        let tabsBefore0 = ex.tabs.count
+        ex.openTab(.folder(root.appendingPathComponent("subfolder")))
+        ex.closeTab(ex.active)
+        check("closing a tab removes it", ex.tabs.count == tabsBefore0)
+        ex.reopenClosedTab()
+        check("Ctrl+Shift+T brings the closed tab back at its folder",
+              ex.tabs.count == tabsBefore0 + 1 && ex.tab.location == .folder(root.appendingPathComponent("subfolder")))
+        ex.closeTab(ex.active)
+        ex.go(to: root)
+
         check("lists folder contents", ex.tab.items.count == 3)
         check("update version compare", Updater.isNewer("v1.2.0", than: "1.1") && !Updater.isNewer("1.0.0", than: "1.0") && !Updater.isNewer("v0.9", than: "1.0"))
         let rel = Updater.Release(["tag_name": "v9.0", "html_url": "https://example.com/r",

@@ -228,13 +228,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             let modes: [ViewMode] = [.details, .smallIcons, .mediumIcons, .largeIcons, .extraLargeIcons]
             let prefs = Prefs.shared
+            // A trackpad fires dozens of tiny events per swipe: accumulate them
+            // so one gesture steps one size at a time. A wheel notch steps at once.
+            if event.phase == .began || event.phase == .mayBegin { WheelZoom.accumulated = 0 }
+            WheelZoom.accumulated += event.scrollingDeltaY
+            let threshold: CGFloat = event.hasPreciseScrollingDeltas ? 14 : 0.5
+            guard abs(WheelZoom.accumulated) >= threshold else { return nil }
+            let up = WheelZoom.accumulated > 0
+            WheelZoom.accumulated = 0
             let i = modes.firstIndex(of: prefs.viewMode) ?? 0
-            if event.scrollingDeltaY > 0.5 { prefs.viewMode = modes[min(modes.count - 1, i + 1)] }
-            else if event.scrollingDeltaY < -0.5 { prefs.viewMode = modes[max(0, i - 1)] }
+            prefs.viewMode = modes[up ? min(modes.count - 1, i + 1) : max(0, i - 1)]
             return nil
         }
     }
 }
+
+enum WheelZoom { static var accumulated: CGFloat = 0 }
 
 /// Windows' Win+D: hide every app so the desktop itself is showing, and put
 /// them back when it is pressed again.
@@ -382,6 +391,7 @@ enum Keys {
             }
         case .newTab: ex.openTab()
         case .closeTab: ex.closeTab(ex.active)
+        case .reopenTab: ex.reopenClosedTab()
         case .nextTab: ex.nextTab()
         case .prevTab: ex.prevTab()
         case .newWindow: AppState.shared.openNewWindow(at: ex.tab.location)

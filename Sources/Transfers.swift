@@ -24,6 +24,23 @@ struct TransferJob: Identifiable {
     /// Paths produced by the job, for undo.
     var created: [URL] = []
     var moved: [(from: URL, to: URL)] = []
+    /// Bytes per second, one sample every half second, for the speed graph.
+    var speeds: [Double] = []
+    var sampleBytes: Int64 = 0
+
+    var percent: Int { Int((fraction * 100).rounded(.down)) }
+
+    /// Average of the last couple of seconds, steadier than the last sample.
+    var currentSpeed: Double {
+        let recent = speeds.suffix(4)
+        return recent.isEmpty ? 0 : recent.reduce(0, +) / Double(recent.count)
+    }
+
+    var remainingText: String {
+        guard state == .running, currentSpeed > 1, bytesTotal > bytesDone else { return "Calculating…" }
+        let s = Double(bytesTotal - bytesDone) / currentSpeed
+        return s < 5 ? "A few seconds" : "About \(TransferJob.timeText(s))"
+    }
 
     var fraction: Double {
         guard bytesTotal > 0 else { return state == .finished ? 1 : 0 }
@@ -66,6 +83,7 @@ final class TransferQueue: ObservableObject {
     private let cancelLock = NSLock()
     private var completion: [UUID: (TransferJob) -> Void] = [:]
     private var running = false
+    private var sampler: Timer?
 
     var active: [TransferJob] { jobs.filter(\.isActive) }
     var hasActive: Bool { !active.isEmpty }
@@ -118,6 +136,14 @@ final class TransferQueue: ObservableObject {
         let job = jobs[next]
         jobs[next].state = .running
         jobs[next].startedAt = Date()
+        startSampler()
+        // Like Explorer, stay quiet for quick jobs; show the progress dialog
+        // only once one is clearly taking a while.
+        let id = job.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, self.jobs.first(where: { $0.id == id })?.state == .running else { return }
+            self.panelOpen = true
+        }
 
         worker.async { [weak self] in
             guard let self else { return }
@@ -137,6 +163,25 @@ final class TransferQueue: ObservableObject {
                 }
             }
         }
+    }
+
+    private func startSampler() {
+        guard sampler == nil else { return }
+        let t = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in self?.sample() }
+        RunLoop.main.add(t, forMode: .common)
+        sampler = t
+    }
+
+    private func sample() {
+        var any = false
+        for i in jobs.indices where jobs[i].state == .running {
+            any = true
+            let delta = jobs[i].bytesDone - jobs[i].sampleBytes
+            jobs[i].sampleBytes = jobs[i].bytesDone
+            jobs[i].speeds.append(Double(max(0, delta)) / 0.5)
+            if jobs[i].speeds.count > 60 { jobs[i].speeds.removeFirst() }
+        }
+        if !any { sampler?.invalidate(); sampler = nil }
     }
 
     private func isCancelled(_ id: UUID) -> Bool {

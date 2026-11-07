@@ -11,7 +11,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
-[![Tests](https://img.shields.io/badge/tests-123%20passing-6CCB5F?style=flat-square)](#tests)
+[![Tests](https://img.shields.io/badge/tests-125%20passing-6CCB5F?style=flat-square)](#tests)
 [![Build](https://github.com/Swallow74/windows-explorer-mac/actions/workflows/build.yml/badge.svg)](https://github.com/Swallow74/windows-explorer-mac/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
@@ -166,6 +166,7 @@ Every shortcut works with **`Ctrl`** (as on Windows) *and* **`Cmd`** (as Mac mus
 | `Ctrl+Shift+1` to `8` | The eight view modes |
 | `Ctrl+Scroll` | Cycle icon sizes |
 | `Ctrl+T` / `Ctrl+W` | New tab, close tab |
+| `Ctrl+Shift+T` | Reopen the last closed tab |
 | `Ctrl+Tab` | Next tab |
 | `Ctrl+1` to `9` | Jump to tab |
 | `Ctrl+N` | New window |
