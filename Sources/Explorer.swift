@@ -433,6 +433,25 @@ final class Explorer: ObservableObject {
         t.editing = nil
         tab = t
         reload()
+        if case .folder(let u) = loc { revealInSidebar(u) }
+    }
+
+    /// Windows expands the navigation tree down to the folder you are
+    /// looking at. Mirror that for every component of the path, under the
+    /// This PC root the tree builds its ids from.
+    func revealInSidebar(_ url: URL) {
+        // The boot volume prefixes everything; the deepest match is the drive
+        // the tree actually hangs this path under.
+        guard let v = Loader.volumes().filter({ url.path.hasPrefix($0.url.path) })
+                .max(by: { $0.url.path.count < $1.url.path.count }) else { return }
+        var id = "thispc/\(v.name)"
+        navExpanded.insert(id)
+        let rest = v.url.path == "/" ? Substring(url.path)
+                                     : url.path.dropFirst(v.url.path.count)
+        for seg in rest.split(separator: "/") {
+            id += "/\(seg)"
+            navExpanded.insert(id)
+        }
     }
 
     func go(to url: URL, newTab: Bool = false) { go(to: .folder(url), newTab: newTab) }

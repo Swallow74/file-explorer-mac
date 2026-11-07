@@ -539,6 +539,8 @@ enum SelfTest {
         let oldView = prefs.viewMode
         prefs.viewMode = .details
         ex.go(to: dir)
+        check("navigation auto-expands the sidebar tree down to the folder",
+              ex.navExpanded.contains { $0.hasSuffix("/grouped") })
         prefs.groupBy = "Name"
         let titles = ex.displayGroups.map(\.title)
         check("grouping by name buckets A, G and the folder",
