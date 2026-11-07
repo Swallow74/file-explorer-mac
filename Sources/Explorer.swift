@@ -903,6 +903,11 @@ final class Explorer: ObservableObject {
         } else {
             let trashed = Ops.trash(items.map(\.url))
             if !trashed.isEmpty { push(.trash(items: trashed)) }
+            // Volumes without a Trash (SMB/NAS) can't recycle: like Windows,
+            // offer to delete permanently instead of failing silently.
+            let done = Set(trashed.map(\.original.path))
+            let failed = items.filter { !done.contains($0.url.path) }
+            if !failed.isEmpty { sheet = .confirmDelete(failed, permanent: true) }
         }
         tab.selection = []
         reload()
