@@ -102,6 +102,15 @@ To keep it around:
 cp -R "build/File Explorer.app" /Applications/
 ```
 
+To update an installed copy after pulling new commits — the installed app does not track the build folder on its own:
+
+```bash
+git pull
+./build.sh
+rm -rf /Applications/"File Explorer.app"
+cp -R "build/File Explorer.app" /Applications/
+```
+
 > macOS asks permission the first time the app reads Desktop, Documents, Downloads or a removable volume. Until you allow it, those folders list as empty. That is macOS, not the app.
 
 ## Keyboard shortcuts
