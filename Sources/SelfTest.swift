@@ -536,6 +536,18 @@ enum SelfTest {
               ex.tab.selection.count == 2)
         marquee.end()
 
+        // A dialog over the pane must get its clicks: no band while a sheet is open.
+        if let press = NSEvent.mouseEvent(with: .leftMouseDown, location: .zero, modifierFlags: [],
+                                          timestamp: 0, windowNumber: 0, context: nil,
+                                          eventNumber: 0, clickCount: 1, pressure: 1) {
+            let before = ex.sheet
+            ex.sheet = .compare
+            check("no selection band starts while a dialog is open",
+                  AppState.shared.active !== ex || !marquee.handle(press))
+            ex.sheet = before
+            marquee.end()
+        }
+
         // A press with no drag is just a click on the background.
         _ = marquee.begin(at: CGPoint(x: 200, y: 460), additive: false)
         marquee.end()

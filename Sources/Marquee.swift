@@ -110,6 +110,8 @@ final class MarqueeController: ObservableObject {
         switch event.type {
         case .leftMouseDown:
             guard event.clickCount == 1, !MenuController.anyOpen else { return false }
+            // A dialog covers the pane: its buttons must get the click, not a band.
+            if AppState.shared.active?.sheet != nil { return false }
             let flags = event.modifierFlags
             let additive = flags.contains(.shift) || flags.contains(.command)
                 || flags.contains(.control)
