@@ -37,7 +37,8 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 
 <div align="center">
 <img src="docs/details.png" width="440" alt="Details view"> <img src="docs/icons-view.png" width="440" alt="Large icons view with thumbnails">
-<img src="docs/context-menu.png" width="440" alt="Windows 11 context menu"> <img src="docs/light.png" width="440" alt="Light theme with a green accent">
+<img src="docs/grouping.png" width="440" alt="Details view grouped by Date modified with collapsible headers"> <img src="docs/context-menu.png" width="440" alt="Windows 11 context menu">
+<img src="docs/light.png" width="440" alt="Light theme with a green accent">
 </div>
 
 ## Download
