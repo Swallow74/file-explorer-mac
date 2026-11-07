@@ -44,6 +44,7 @@ struct NavPane: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
     @State private var hoverID: String?
+    @State private var pinTargeted = false
 
     var body: some View {
         ScrollView(.vertical) {
@@ -61,6 +62,12 @@ struct NavPane: View {
         .scrollIndicators(.automatic)
         .frame(maxHeight: .infinity)
         .background(Win.sidebar)
+        // Like the Finder: a folder dropped on the pane (not on a row, which
+        // moves files into it) is added to the favourites.
+        .dropHighlight(pinTargeted)
+        .onDrop(of: [.fileURL], isTargeted: $pinTargeted) { providers in
+            DropHandler.pinFolders(providers)
+        }
     }
 
     private func isSelected(_ node: NavNode) -> Bool {
@@ -236,6 +243,26 @@ struct NavRow: View {
 // MARK: - Shared drop handling
 
 enum DropHandler {
+    /// Adds the dropped folders to Quick access (the sidebar favourites).
+    static func pinFolders(_ providers: [NSItemProvider]) -> Bool {
+        var accepted = false
+        for p in providers where p.canLoadObject(ofClass: URL.self) {
+            accepted = true
+            _ = p.loadObject(ofClass: URL.self) { url, _ in
+                guard let url else { return }
+                DispatchQueue.main.async { pinIfFolder(url) }
+            }
+        }
+        return accepted
+    }
+
+    static func pinIfFolder(_ url: URL) {
+        guard url.isFileURL,
+              (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+        else { return }
+        Settings.shared.pin(url)
+    }
+
     static func handle(providers: [NSItemProvider], into dest: URL, ex: Explorer) -> Bool {
         let group = DispatchGroup()
         var urls: [URL] = []

@@ -148,6 +148,11 @@ enum SelfTest {
             check("Space again closes Quick Look", !QuickLook.shared.isVisible)
         }
 
+        // Dropping a folder on the sidebar pins it (files are ignored)
+        DropHandler.pinIfFolder(sub)
+        check("Dropping a folder on the sidebar pins it", Settings.shared.pinned.contains(sub.path))
+        Settings.shared.unpin(sub)
+
         // Navigation
         sendCode(ex, 123, alt: true)
         check("Alt+Left goes back", ex.currentDirectory?.path == root.path)
