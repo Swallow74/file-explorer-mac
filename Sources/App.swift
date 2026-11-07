@@ -212,7 +212,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ClickModifiers.shared.install()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, let ex = AppState.shared.active else { return event }
-            return Keys.handle(event, ex: ex, editingText: self.editingText) ? nil : event
+            let handled = Keys.handle(event, ex: ex, editingText: self.editingText)
+            if handled, QuickLook.shared.isVisible { QuickLook.shared.refresh(ex) }
+            return handled ? nil : event
         }
         marqueeMonitor = NSEvent.addLocalMonitorForEvents(
             matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { event in
@@ -325,6 +327,7 @@ enum Keys {
         case 36, 76:                                                    // Enter
             ex.openSelection(); return true
         case 53:                                                        // Escape
+            if QuickLook.shared.isVisible { QuickLook.shared.close(); return true }
             NotificationCenter.default.post(name: .explorerCommand, object: ExplorerCommand.closeMenus)
             if ex.tab.editing != nil { ex.tab.editing = nil }
             else if !ex.tab.search.isEmpty { ex.updateSearch("") }
@@ -346,7 +349,9 @@ enum Keys {
         case 119: ex.selectLast(); return true
         case 116: ex.moveSelection(by: -12, extend: shift); return true
         case 121: ex.moveSelection(by: 12, extend: shift); return true
-        case 49:                                                        // Space
+        case 49 where !ctrl && !shift && !alt:                          // Space: Quick Look
+            QuickLook.shared.toggle(ex); return true
+        case 49:                                                        // Ctrl+Space: toggle selection
             if let lead = ex.tab.lead, let item = ex.tab.items.first(where: { $0.id == lead }) {
                 ex.select(item, extend: false, toggle: true)
                 return true

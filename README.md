@@ -308,6 +308,8 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 
 **Selection and input**
 - `Shift`/`Ctrl`/`Cmd`+click uses the modifiers held **at press time**, so a quick click-and-release no longer collapses a multi-selection.
+- **Quick Look**: `Space` previews the selected files like in the Finder (`Space` or `Esc` closes, arrows move along the selection); `Ctrl+Space` toggles the selection.
+- Deleting on volumes without a Recycle Bin (SMB/NAS) offers a permanent delete instead of failing silently.
 - Rubber-band selection no longer swallows clicks on open menus, and picks the right window when two Explorers are open.
 - Inline rename commits on focus loss; case-only renames work on case-insensitive APFS; shortcut re-mapping detects real conflicts.
 - Column, pane-divider and details-pane resize track the pointer 1:1 (they used to compound).

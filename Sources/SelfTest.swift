@@ -138,6 +138,16 @@ enum SelfTest {
                   fm.fileExists(atPath: sub.appendingPathComponent("Renamed").path))
         }
 
+        // Quick Look: Space opens the preview, Space again closes it
+        if let item = ex.tab.items.first(where: { !$0.isDirectory }) {
+            ex.select(item, extend: false, toggle: false)
+            sendCode(ex, 49)
+            check("Space opens Quick Look", QuickLook.shared.isVisible)
+            sendCode(ex, 49)
+            RunLoop.current.run(until: Date().addingTimeInterval(0.6))  // the panel fades out
+            check("Space again closes Quick Look", !QuickLook.shared.isVisible)
+        }
+
         // Navigation
         sendCode(ex, 123, alt: true)
         check("Alt+Left goes back", ex.currentDirectory?.path == root.path)
