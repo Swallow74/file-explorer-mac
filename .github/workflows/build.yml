@@ -51,7 +51,7 @@ jobs:
 
       - name: Package
         run: |
-          ditto -c -k --keepParent "build/File Explorer.app" FileExplorer-macOS-universal.zip
+          ./Tools/package.sh "build/File Explorer.app" FileExplorer-macOS-universal.zip
 
       - uses: actions/upload-artifact@v4
         with:

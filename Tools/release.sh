@@ -35,16 +35,14 @@ codesign --force --options runtime --timestamp \
     --sign "$IDENTITY" "$APP"
 codesign --verify --strict --verbose=2 "$APP"
 
-rm -f "$ZIP"
-ditto -c -k --keepParent "$APP" "$ZIP"
+./Tools/package.sh "$APP" "$ZIP"
 
 echo "==> Notarizing (this takes a few minutes)"
 xcrun notarytool submit "$ZIP" --keychain-profile "$PROFILE" --wait
 
 echo "==> Stapling"
 xcrun stapler staple "$APP"
-rm -f "$ZIP"
-ditto -c -k --keepParent "$APP" "$ZIP"
+./Tools/package.sh "$APP" "$ZIP"
 xcrun stapler validate "$APP"
 spctl --assess --type execute --verbose=2 "$APP"
 

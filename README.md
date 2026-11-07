@@ -49,6 +49,7 @@ Grab the latest build from [Releases](https://github.com/gmazaratti/windows-expl
 The app is ad-hoc signed but **not notarized**, because notarization requires a paid Apple Developer account. macOS will therefore refuse to open it the first time. Either:
 
 - **System Settings > Privacy & Security**, scroll down to the message about File Explorer, and click **Open Anyway**, or
+- double-click **Unlock File Explorer.command** from the zip (the first time, right-click it and choose **Open**), or
 - clear the quarantine flag yourself:
 
   ```bash
