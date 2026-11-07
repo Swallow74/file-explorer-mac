@@ -332,6 +332,7 @@ struct SearchBox: View {
                 } label: {
                     Glyph(icon: .tabClose, size: 11, color: Win.textSecondary, weight: 1.2)
                         .frame(width: 18, height: 18)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .hoverFill()

@@ -482,7 +482,7 @@ final class Explorer: ObservableObject {
         if case .folder(let u) = loc { revealInSidebar(u) }
     }
 
-    /// Windows expands the navigation tree down to the folder you are
+    /// Expand the navigation tree down to the parent of the folder you are
     /// looking at. Mirror that for every component of the path, under the
     /// This PC root the tree builds its ids from.
     func revealInSidebar(_ url: URL) {
@@ -491,10 +491,12 @@ final class Explorer: ObservableObject {
         guard let v = Loader.volumes().filter({ url.path.hasPrefix($0.url.path) })
                 .max(by: { $0.url.path.count < $1.url.path.count }) else { return }
         var id = "thispc/\(v.name)"
-        navExpanded.insert(id)
         let rest = v.url.path == "/" ? Substring(url.path)
                                      : url.path.dropFirst(v.url.path.count)
-        for seg in rest.split(separator: "/") {
+        let segs = rest.split(separator: "/")
+        // Only the ancestors: the folder itself opens when the user clicks its chevron.
+        if !segs.isEmpty { navExpanded.insert(id) }
+        for seg in segs.dropLast() {
             id += "/\(seg)"
             navExpanded.insert(id)
         }
