@@ -222,12 +222,19 @@ enum Places {
         return FileManager.default.fileExists(atPath: direct.path) ? direct : nil
     }
 
-    static let desktop   = url("Desktop")
-    static let downloads = url("Downloads")
-    static let documents = url("Documents")
-    static let pictures  = url("Pictures")
-    static let music     = url("Music")
-    static let videos    = url("Movies")
+    /// System-reported location (honours relocated folders), symlinks resolved; falls back to ~/<name>.
+    private static func std(_ dir: FileManager.SearchPathDirectory, _ fallback: String) -> URL {
+        let u = FileManager.default.urls(for: dir, in: .userDomainMask).first ?? url(fallback)
+        let r = u.resolvingSymlinksInPath()
+        return FileManager.default.fileExists(atPath: r.path) ? r : url(fallback).resolvingSymlinksInPath()
+    }
+
+    static let desktop   = std(.desktopDirectory, "Desktop")
+    static let downloads = std(.downloadsDirectory, "Downloads")
+    static let documents = std(.documentDirectory, "Documents")
+    static let pictures  = std(.picturesDirectory, "Pictures")
+    static let music     = std(.musicDirectory, "Music")
+    static let videos    = std(.moviesDirectory, "Movies")
     static let trash     = url(".Trash")
 
     /// The folders Windows pins to Quick access out of the box.
@@ -292,12 +299,12 @@ enum Places {
         if url.path == home.path { return NSUserName() }
         if url.path == "/" { return "Local Disk (C:)" }
         if url.path == trash.path { return "Recycle Bin" }
-        if url.path == videos.path { return "Videos" }
+        if url.resolvingSymlinksInPath().path == videos.path { return "Videos" }
         return url.lastPathComponent
     }
 
     static func icon(for url: URL) -> Icon {
-        switch url.path {
+        switch url.resolvingSymlinksInPath().path {
         case desktop.path: return .desktop
         case downloads.path: return .download
         case documents.path: return .document

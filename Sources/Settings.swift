@@ -419,7 +419,7 @@ final class Settings: ObservableObject {
     // MARK: Pinning
 
     func isPinned(_ url: URL) -> Bool {
-        pinned.contains(url.path) || Places.defaultPinnedPaths.contains(url.path)
+        pinned.contains(url.path) || Places.defaultPinnedPaths.contains(url.resolvingSymlinksInPath().path)
     }
 
     func pin(_ url: URL) {
