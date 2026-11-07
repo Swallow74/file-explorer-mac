@@ -27,6 +27,10 @@ enum SelfTest {
 
         check("lists folder contents", ex.tab.items.count == 3)
         check("update version compare", Updater.isNewer("v1.2.0", than: "1.1") && !Updater.isNewer("1.0.0", than: "1.0") && !Updater.isNewer("v0.9", than: "1.0"))
+        let rel = Updater.Release(["tag_name": "v9.0", "html_url": "https://example.com/r",
+            "assets": [["name": "notes.txt", "browser_download_url": "https://example.com/n"],
+                       ["name": "App.zip", "browser_download_url": "https://example.com/App.zip"]]])
+        check("release parsing picks the zip asset", rel?.tag == "v9.0" && rel?.zip?.lastPathComponent == "App.zip")
         check("folders sort before files", ex.tab.items.first?.name == "subfolder")
         check("size column uses Windows KB format",
               ex.tab.items.first(where: { $0.name == "alpha.txt" })?.sizeText == "1 KB")
