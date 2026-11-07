@@ -222,6 +222,32 @@ enum Places {
         return FileManager.default.fileExists(atPath: direct.path) ? direct : nil
     }
 
+    /// iCloud Drive plus every File Provider root in ~/Library/CloudStorage
+    /// (OneDrive, Google Drive accounts, Dropbox...), one sidebar entry each.
+    static var cloudPlaces: [Place] {
+        let fm = FileManager.default
+        var out: [Place] = []
+        let icloud = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
+        if fm.fileExists(atPath: icloud.path) {
+            out.append(Place(id: "cloud:icloud", title: "iCloud Drive", icon: .cloud, url: icloud, accent: .blue))
+        }
+        let root = home.appendingPathComponent("Library/CloudStorage")
+        let names = ((try? fm.contentsOfDirectory(atPath: root.path)) ?? [])
+            .filter { !$0.hasPrefix(".") }.sorted()
+        for name in names {
+            let title: String
+            if name.hasPrefix("GoogleDrive-") { title = "Drive · \(name.dropFirst("GoogleDrive-".count).split(separator: "@").first ?? "")" }
+            else if name.hasPrefix("OneDrive") { title = "OneDrive" }
+            else { title = name }
+            out.append(Place(id: "cloud:\(name)", title: title, icon: .cloud,
+                             url: root.appendingPathComponent(name), accent: .blue))
+        }
+        if names.first(where: { $0.hasPrefix("OneDrive") }) == nil, let od = oneDrive {
+            out.append(Place(id: "cloud:onedrive", title: "OneDrive", icon: .cloud, url: od, accent: .blue))
+        }
+        return out
+    }
+
     /// System-reported location (honours relocated folders), symlinks resolved; falls back to ~/<name>.
     private static func std(_ dir: FileManager.SearchPathDirectory, _ fallback: String) -> URL {
         let u = FileManager.default.urls(for: dir, in: .userDomainMask).first ?? url(fallback)
@@ -286,9 +312,7 @@ enum Places {
             Place(id: "home", title: "Home", icon: .home, url: nil, accent: .orange, special: .home),
             Place(id: "gallery", title: "Gallery", icon: .gallery, url: pictures, accent: .blue, special: .gallery),
         ]
-        if let od = oneDrive {
-            list.append(Place(id: "onedrive", title: "OneDrive", icon: .cloud, url: od, accent: .blue))
-        }
+        list.append(contentsOf: cloudPlaces)
         list.append(contentsOf: quickAccess)
         list.append(Place(id: "thispc", title: "This PC", icon: .thisPC, url: nil, accent: .blue, special: .thisPC))
         list.append(Place(id: "network", title: "Network", icon: .network, url: URL(fileURLWithPath: "/Volumes"), accent: .neutral, special: .network))
