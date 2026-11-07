@@ -4,14 +4,24 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
-# One runner per branch: a new push replaces the queued run rather than
-# piling up behind it.
+# One runner per branch and trigger: a new push replaces the queued run
+# rather than piling up behind it.
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
+  arm-probe:
+    # Dispatch-only: can this account use the ARM pool yet? If this job ever
+    # goes green, move build-and-test onto macos-latest and skip the Intel
+    # queue entirely.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - run: swiftc --version && uname -m
+
   build-and-test:
     # macos-14 maps to the ARM pool, which GitHub rejects for this account
     # ("configuration macos-14-arm64-us-default is not supported"). The Intel
