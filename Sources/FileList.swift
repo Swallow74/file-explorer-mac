@@ -221,6 +221,56 @@ struct EmptyFolderView: View {
 
 // MARK: - Selection & activation helpers shared by every view mode
 
+/// The modifier keys that were held when the mouse button last went down.
+///
+/// SwiftUI resolves a single tap only once the double-click window has passed,
+/// and `NSEvent.modifierFlags` reports the keyboard as it is *then*. A click
+/// is a press followed immediately by a release, so by the time the handler
+/// runs a quick `Shift`+click has already let go of `Shift` — the modifier was
+/// gone and the click merely re-selected the item instead of extending the
+/// selection. Windows and the Finder read the keys with the press, and so does
+/// this.
+final class ClickModifiers {
+    static let shared = ClickModifiers()
+
+    private(set) var atPress: NSEvent.ModifierFlags = []
+    private var monitor: Any?
+
+    func install() {
+        guard monitor == nil else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
+            self?.note(event)
+            return event
+        }
+    }
+
+    /// Records the modifiers of a press. Only presses are reported: a release
+    /// or a modifier key-up must not clear them, or the tap that follows the
+    /// click would see an empty keyboard again.
+    func note(_ event: NSEvent) {
+        atPress = event.modifierFlags
+    }
+}
+
+/// What a click on an item means, decided from the modifiers captured at
+/// press time.
+enum ItemClick {
+    static let selectionModifiers: NSEvent.ModifierFlags = [.shift, .control, .command]
+
+    /// A second plain click on a name that is already the sole selection starts
+    /// an in-place rename, the way Explorer and the Finder do it. A click with
+    /// a modifier extends or toggles the selection instead, a click on one item
+    /// of a multi-selection just collapses it, and a double-click still opens.
+    static func startsRename(modifiers: NSEvent.ModifierFlags,
+                             isSoleSelection: Bool,
+                             editing: String?,
+                             menuOpen: Bool) -> Bool {
+        guard isSoleSelection, editing == nil, !menuOpen else { return false }
+        return modifiers.intersection(selectionModifiers).isEmpty
+    }
+}
+
 struct ItemInteraction: ViewModifier {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
@@ -236,10 +286,16 @@ struct ItemInteraction: ViewModifier {
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { ex.open(item) }
             .onTapGesture(count: 1) {
-                let f = NSEvent.modifierFlags
-                ex.select(item,
-                          extend: f.contains(.shift),
-                          toggle: f.contains(.control) || f.contains(.command))
+                let f = ClickModifiers.shared.atPress
+                if ItemClick.startsRename(modifiers: f,
+                                          isSoleSelection: ex.tab.selection == [item.id],
+                                          editing: ex.tab.editing,
+                                          menuOpen: MenuController.anyOpen) {
+                    ex.beginRename(item)
+                } else {
+                    ex.select(item, extend: f.contains(.shift),
+                              toggle: f.contains(.control) || f.contains(.command))
+                }
             }
             .onRightClick { p in
                 if !ex.tab.selection.contains(item.id) {

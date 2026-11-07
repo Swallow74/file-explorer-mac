@@ -1,3 +1,4 @@
 build/
 *.xcuserdatad
 .DS_Store
+.opencode/

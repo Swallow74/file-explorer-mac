@@ -838,6 +838,26 @@ final class Explorer: ObservableObject {
         tab.editing = first.id
     }
 
+    /// Renames one specific item. This is what a second click on an
+    /// already-selected name does in Explorer and in the Finder: the click
+    /// that lands on an item that is already the sole selection turns its
+    /// label into an editable field instead of just re-selecting it.
+    func beginRename(_ item: FileItem) {
+        // The item must still be in this listing: a click can arrive after the
+        // pane has navigated (double-click that opens a folder).
+        guard tab.editing == nil, tab.items.contains(where: { $0.id == item.id })
+        else { return }
+        onInteract?()
+        var t = tab
+        if t.selection != [item.id] {
+            t.selection = [item.id]
+            t.anchor = item.id
+        }
+        t.lead = item.id
+        t.editing = item.id
+        tab = t
+    }
+
     func commitRename(_ item: FileItem, to newName: String) {
         tab.editing = nil
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)

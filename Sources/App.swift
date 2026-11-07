@@ -207,6 +207,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func installKeyHandler() {
+        // Item taps read the modifiers from the press, not from the moment the
+        // tap resolves, so a quick Shift-click still extends the selection.
+        ClickModifiers.shared.install()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, let ex = AppState.shared.active else { return event }
             return Keys.handle(event, ex: ex, editingText: self.editingText) ? nil : event

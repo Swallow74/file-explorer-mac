@@ -77,6 +77,45 @@ enum SelfTest {
             check("Escape cancels rename", ex.tab.editing == nil)
         }
 
+        // Second click on an already-selected name (Windows / Finder)
+        if let item = ex.tab.items.first {
+            ex.select(item, extend: false, toggle: false)
+            ex.beginRename(item)
+            check("a second click on a selected name starts rename", ex.tab.editing == item.id)
+            sendCode(ex, 53)
+            ex.selectAll()
+            ex.beginRename(item)
+            check("renaming one item collapses a multi-selection",
+                  ex.tab.editing == item.id && ex.tab.selection == [item.id])
+            ex.tab.editing = nil
+        }
+
+        // Which click does what, from the modifiers captured at press time.
+        check("a plain second click on a name renames it",
+              ItemClick.startsRename(modifiers: [], isSoleSelection: true,
+                                     editing: nil, menuOpen: false))
+        check("Shift, Ctrl and Cmd clicks select rather than rename",
+              !ItemClick.startsRename(modifiers: .shift, isSoleSelection: true,
+                                      editing: nil, menuOpen: false)
+              && !ItemClick.startsRename(modifiers: .control, isSoleSelection: true,
+                                         editing: nil, menuOpen: false)
+              && !ItemClick.startsRename(modifiers: .command, isSoleSelection: true,
+                                         editing: nil, menuOpen: false))
+        check("a click on one item of a multi-selection only collapses it",
+              !ItemClick.startsRename(modifiers: [], isSoleSelection: false,
+                                      editing: nil, menuOpen: false))
+        check("a click with a context menu open does not rename",
+              !ItemClick.startsRename(modifiers: [], isSoleSelection: true,
+                                      editing: nil, menuOpen: true))
+        if let press = NSEvent.mouseEvent(with: .leftMouseDown, location: .zero,
+                                          modifierFlags: .shift, timestamp: 0,
+                                          windowNumber: 0, context: nil, eventNumber: 0,
+                                          clickCount: 1, pressure: 1) {
+            ClickModifiers.shared.note(press)
+        }
+        check("the click modifiers are the ones held at press time",
+              ClickModifiers.shared.atPress.contains(.shift))
+
         // Delete to Recycle Bin + undo
         if let item = ex.tab.items.first(where: { $0.name == "Renamed" }) {
             ex.select(item, extend: false, toggle: false)
