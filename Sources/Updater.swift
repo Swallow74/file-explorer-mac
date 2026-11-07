@@ -27,12 +27,17 @@ enum Updater {
         return false
     }
 
-    /// Automatic check: silent unless an unskipped newer release exists; throttled to once a day.
+    /// Automatic check: silent unless an unskipped newer release exists; throttled to once a day; also re-evaluated hourly while running.
     static func checkAtLaunch() {
         let d = Store.defaults
         if ProcessInfo.processInfo.environment["WINEXP_UPDATE_NOW"] == nil,
            let last = d.object(forKey: lastCheckKey) as? Date, Date().timeIntervalSince(last) < 86_400 { return }
         check(manual: false)
+    }
+
+    /// Keeps long-running sessions covered: re-evaluates hourly, the 24h throttle in checkAtLaunch decides.
+    static func startPeriodicChecks() {
+        Timer.scheduledTimer(withTimeInterval: 3_600, repeats: true) { _ in checkAtLaunch() }
     }
 
     static func check(manual: Bool) {

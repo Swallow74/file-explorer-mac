@@ -127,7 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installKeyHandler()
         NSApp.activate(ignoringOtherApps: true)
         if env["WINEXP_SELFTEST"] == nil && env["WINEXP_DEMO"] == nil && env["WINEXP_SNAPSHOT"] == nil {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { Updater.checkAtLaunch() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { Updater.checkAtLaunch(); Updater.startPeriodicChecks() }
         }
         if env["WINEXP_SELFTEST"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { SelfTest.run() }
