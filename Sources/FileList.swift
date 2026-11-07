@@ -173,6 +173,38 @@ extension Notification.Name {
     static let backgroundContextMenu = Notification.Name("winexp.bgContextMenu")
 }
 
+/// Windows' section band: chevron, bucket name, item count. Click folds
+/// the group; the header stays, which is also the Explorer behaviour.
+struct GroupHeader: View {
+    let title: String
+    let count: Int
+    @ObservedObject var ex: Explorer
+    @State private var hovering = false
+
+    private var collapsed: Bool { ex.collapsedGroups.contains(title) }
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: collapsed ? "chevron.right" : "chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Win.textSecondary)
+            Text(title)
+                .font(Win.body(12, weight: .semibold))
+                .foregroundStyle(Win.text)
+            Text("\(count) item\(count == 1 ? "" : "s")")
+                .font(Win.body(11))
+                .foregroundStyle(Win.textSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 26)
+        .background(hovering ? Win.subtleHover : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture { ex.toggleGroup(title) }
+        .onHover { hovering = $0 }
+    }
+}
+
 struct EmptyFolderView: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
@@ -294,10 +326,18 @@ struct DetailsView: View {
             ScrollViewReader { proxy in
                 ScrollView(.vertical) {
                     LazyVStack(spacing: 0) {
-                        ForEach(ex.tab.items) { item in
-                            DetailsRow(ex: ex, menus: menus, item: item,
-                                       height: rowHeight, columns: columns)
-                                .id(item.id)
+                        ForEach(ex.displayGroups) { group in
+                            if !group.title.isEmpty {
+                                GroupHeader(title: group.title, count: group.items.count, ex: ex)
+                                    .id(group.title)
+                            }
+                            if !ex.collapsedGroups.contains(group.title) {
+                                ForEach(group.items) { item in
+                                    DetailsRow(ex: ex, menus: menus, item: item,
+                                               height: rowHeight, columns: columns)
+                                        .id(item.id)
+                                }
+                            }
                         }
                         Color.clear.frame(height: 40)
                     }
@@ -535,13 +575,24 @@ struct IconGridView: View {
         let cell = prefs.viewMode.cellSize
         ScrollViewReader { proxy in
             ScrollView(.vertical) {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: cell.width, maximum: cell.width * 1.4),
-                                             spacing: 4, alignment: .top)],
-                          alignment: .leading, spacing: 4) {
-                    ForEach(ex.tab.items) { item in
-                        IconCell(ex: ex, menus: menus, item: item,
-                                 size: prefs.viewMode.iconSize, cell: cell)
-                            .id(item.id)
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(ex.displayGroups) { group in
+                        if !group.title.isEmpty {
+                            GroupHeader(title: group.title, count: group.items.count, ex: ex)
+                                .id(group.title)
+                        }
+                        if !ex.collapsedGroups.contains(group.title) {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: cell.width, maximum: cell.width * 1.4),
+                                                         spacing: 4, alignment: .top)],
+                                      alignment: .leading, spacing: 4) {
+                                ForEach(group.items) { item in
+                                    IconCell(ex: ex, menus: menus, item: item,
+                                             size: prefs.viewMode.iconSize, cell: cell)
+                                        .id(item.id)
+                                }
+                            }
+                            .padding(.bottom, 6)
+                        }
                     }
                 }
                 .padding(12)

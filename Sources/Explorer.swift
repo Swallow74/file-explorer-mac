@@ -252,6 +252,29 @@ final class Explorer: ObservableObject {
     @Published var sheet: SheetKind? = nil
     @Published var navExpanded: Set<String> = ["thispc"]
     @Published var filterKind: String? = nil
+    @Published var collapsedGroups: Set<String> = []
+
+    struct ItemGroup: Identifiable {
+        let title: String
+        let items: [FileItem]
+        var id: String { title }
+    }
+
+    /// The items as the file area lays them out: one untitled group when
+    /// grouping is off, otherwise Windows' buckets in their own order.
+    var displayGroups: [ItemGroup] {
+        let mode = Prefs.shared.groupBy
+        let items = tab.items
+        guard mode != "(None)", !items.isEmpty else { return [ItemGroup(title: "", items: items)] }
+        let buckets = Dictionary(grouping: items) { Grouping.key($0, by: mode) }
+        return Grouping.ordered(Set(buckets.keys), by: mode)
+            .map { ItemGroup(title: $0, items: buckets[$0] ?? []) }
+    }
+
+    func toggleGroup(_ title: String) {
+        if collapsedGroups.contains(title) { collapsedGroups.remove(title) }
+        else { collapsedGroups.insert(title) }
+    }
 
     enum SheetKind: Identifiable {
         case properties([FileItem])
@@ -364,7 +387,12 @@ final class Explorer: ObservableObject {
 
     private func watchCurrentFolder() {
         watcher = nil
-        guard let url = tab.location.url ?? nil else { return }
+        // This PC and Home list mounted drives: watch /Volumes too, so a
+        // USB stick pulled out while the page is open disappears instead
+        // of staying as a ghost until the next navigation.
+        let url = tab.location.url ?? (tab.location == .thisPC || tab.location == .home
+            ? URL(fileURLWithPath: "/Volumes") : nil)
+        guard let url else { return }
         watcher = DirectoryWatcher(url: url) { [weak self] in
             guard let self else { return }
             if self.tab.editing == nil && !self.tab.searching { self.reload() }
@@ -586,23 +614,31 @@ final class Explorer: ObservableObject {
         tab.selection = all.subtracting(tab.selection)
     }
 
+    /// The flat on-screen order: respects grouping and collapsed groups.
+    /// Identical to `tab.items` when grouping is off.
+    var visibleItems: [FileItem] {
+        guard Prefs.shared.groupBy != "(None)" else { return tab.items }
+        return displayGroups.flatMap { collapsedGroups.contains($0.title) ? [] : $0.items }
+    }
+
     func moveSelection(by delta: Int, extend: Bool) {
-        guard !tab.items.isEmpty else { return }
-        let current = tab.lead.flatMap { id in tab.items.firstIndex { $0.id == id } } ?? -1
-        let next = max(0, min(tab.items.count - 1, current + delta))
-        let item = tab.items[next]
+        let shown = visibleItems
+        guard !shown.isEmpty else { return }
+        let current = tab.lead.flatMap { id in shown.firstIndex { $0.id == id } } ?? -1
+        let next = max(0, min(shown.count - 1, current + delta))
+        let item = shown[next]
         if extend { select(item, extend: true, toggle: false) }
         else { select(item, extend: false, toggle: false) }
         tab.scrollTarget = item.id
     }
 
     func selectFirst() {
-        guard let f = tab.items.first else { return }
+        guard let f = visibleItems.first else { return }
         select(f, extend: false, toggle: false); tab.scrollTarget = f.id
     }
 
     func selectLast() {
-        guard let l = tab.items.last else { return }
+        guard let l = visibleItems.last else { return }
         select(l, extend: false, toggle: false); tab.scrollTarget = l.id
     }
 

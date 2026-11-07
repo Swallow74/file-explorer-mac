@@ -224,8 +224,25 @@ final class TransferQueue: ObservableObject {
                     // just the ones landing in the source's own folder.
                     let target = Ops.uniqueURL(for: source.lastPathComponent,
                                                in: destination, copySuffix: true)
-                    try copyTree(source, to: target, job: &job)
-                    job.created.append(target)
+                    var isDir: ObjCBool = false
+                    fm.fileExists(atPath: source.path, isDirectory: &isDir)
+                    if !isDir.boolValue, Transfers.sameVolume(source, destination),
+                       clonefile(source.path, target.path, 0) == 0 {
+                        // APFS copy-on-write clone: instant, occupies no space
+                        // until either copy changes. Filesystem declines
+                        // (exFAT, network mounts) -> ordinary copy below.
+                        job.created.append(target)
+                        job.bytesDone += perSource[index].bytes
+                        job.filesDone += perSource[index].files
+                        update(job.id) {
+                            $0.bytesDone = job.bytesDone
+                            $0.filesDone = job.filesDone
+                            $0.currentName = source.lastPathComponent
+                        }
+                    } else {
+                        try copyTree(source, to: target, job: &job)
+                        job.created.append(target)
+                    }
                 }
             } catch {
                 job.state = .failed(error.localizedDescription)

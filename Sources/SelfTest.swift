@@ -232,6 +232,7 @@ enum SelfTest {
                         ex.undo()
                         check("Ctrl+Z undoes a queued move",
                               fm.fileExists(atPath: root.appendingPathComponent("gamma.txt").path))
+                        checkGrouping(ex: ex, root: root)
                         tail()
                     }
                 } else {
@@ -524,6 +525,45 @@ enum SelfTest {
         } else {
             check("the hostile test archive decodes", false)
         }
+    }
+
+    private static func checkGrouping(ex: Explorer, root: URL) {
+        let fm = FileManager.default
+        let dir = root.appendingPathComponent("grouped")
+        try? fm.createDirectory(at: dir.appendingPathComponent("Sub"), withIntermediateDirectories: true)
+        for n in ["alpha.txt", "gamma.txt"] {
+            fm.createFile(atPath: dir.appendingPathComponent(n).path, contents: Data("x".utf8))
+        }
+        let prefs = Prefs.shared
+        let oldMode = prefs.groupBy
+        let oldView = prefs.viewMode
+        prefs.viewMode = .details
+        ex.go(to: dir)
+        prefs.groupBy = "Name"
+        let titles = ex.displayGroups.map(\.title)
+        check("grouping by name buckets A, G and the folder",
+              titles.contains("A") && titles.contains("G") && titles.contains("S"))
+        check("grouping keeps every visible item exactly once",
+              ex.displayGroups.reduce(0) { $0 + $1.items.count } == ex.tab.items.count)
+        ex.toggleGroup("G")
+        check("a collapsed group hides its items",
+              ex.visibleItems.allSatisfy { $0.name != "gamma.txt" })
+        ex.toggleGroup("G")
+        check("reopening a group shows the item again",
+              ex.visibleItems.contains { $0.name == "gamma.txt" })
+        prefs.groupBy = "Size"
+        check("folders group under Unspecified by size",
+              ex.displayGroups.contains { $0.title == "Unspecified" && !$0.items.isEmpty })
+        prefs.groupBy = oldMode
+        prefs.viewMode = oldView
+        check("the date buckets follow Windows' labels",
+              Grouping.dateLabel(Date()) == "Today"
+              && Grouping.dateLabel(Date().addingTimeInterval(-86_400)) == "Yesterday"
+              && Grouping.dateLabel(Date().addingTimeInterval(-86_400 * 400)) == "A long time ago")
+        check("the size buckets name Explorer's ranges",
+              Grouping.sizeLabel(0) == "Empty" && Grouping.sizeLabel(500) == "Tiny"
+              && Grouping.sizeLabel(5_000_000) == "Large"
+              && Grouping.sizeLabel(2_000_000_000) == "Gigantic")
     }
 
     private static func checkCompare(root: URL, sub: URL) {

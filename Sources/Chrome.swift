@@ -505,11 +505,21 @@ struct CommandBar: View {
         })
         entries.append(.sep())
         entries.append(MenuEntry(title: "Group by", submenu: [
-            MenuEntry(title: "(None)", radio: prefs.groupBy == "(None)") { prefs.groupBy = "(None)" },
-            MenuEntry(title: "Name", radio: prefs.groupBy == "Name") { prefs.groupBy = "Name" },
-            MenuEntry(title: "Type", radio: prefs.groupBy == "Type") { prefs.groupBy = "Type" },
-            MenuEntry(title: "Date modified", radio: prefs.groupBy == "Date modified") { prefs.groupBy = "Date modified" },
-            MenuEntry(title: "Size", radio: prefs.groupBy == "Size") { prefs.groupBy = "Size" },
+            MenuEntry(title: "(None)", radio: prefs.groupBy == "(None)") {
+                prefs.groupBy = "(None)"; ex.collapsedGroups.removeAll()
+            },
+            MenuEntry(title: "Name", radio: prefs.groupBy == "Name") {
+                prefs.groupBy = "Name"; ex.collapsedGroups.removeAll()
+            },
+            MenuEntry(title: "Type", radio: prefs.groupBy == "Type") {
+                prefs.groupBy = "Type"; ex.collapsedGroups.removeAll()
+            },
+            MenuEntry(title: "Date modified", radio: prefs.groupBy == "Date modified") {
+                prefs.groupBy = "Date modified"; ex.collapsedGroups.removeAll()
+            },
+            MenuEntry(title: "Size", radio: prefs.groupBy == "Size") {
+                prefs.groupBy = "Size"; ex.collapsedGroups.removeAll()
+            },
         ]))
         return entries
     }
