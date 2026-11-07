@@ -286,3 +286,85 @@ struct ErrorDialog: View {
         }
     }
 }
+
+// MARK: - Replace or Skip Files
+
+/// Windows' copy/move conflict prompt, with the same three outcomes.
+struct ConflictDialog: View {
+    let prompt: ConflictPrompt
+    let onClose: () -> Void
+
+    private func choose(_ policy: TransferJob.Conflict) {
+        onClose()
+        prompt.resolve(policy)
+    }
+
+    private func info(_ url: URL) -> String {
+        let v = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey])
+        let date = v?.contentModificationDate.map(FileItem.winDate.string(from:)) ?? ""
+        if v?.isDirectory == true { return date }
+        let size = v?.fileSize.map { FileItem.friendlySize(Int64($0)) } ?? ""
+        return "\(size), \(date)"
+    }
+
+    var body: some View {
+        let n = prompt.clashes.count
+        let verb = prompt.kind == .move ? "Moving" : "Copying"
+        WinDialog(title: "\(verb) \(prompt.total) item\(prompt.total == 1 ? "" : "s")", width: 520, onClose: onClose) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Replace or Skip Files")
+                    .font(Win.body(16, weight: .semibold)).foregroundStyle(Win.accentText)
+                Text("The destination “\(prompt.destination.lastPathComponent)” already has \(n) file\(n == 1 ? "" : "s") with the same name\(n == 1 ? "" : "s")")
+                    .font(Win.body(12)).foregroundStyle(Win.text)
+                VStack(spacing: 0) {
+                    ForEach(Array(prompt.clashes.prefix(4)), id: \.self) { src in
+                        let dst = prompt.destination.appendingPathComponent(src.lastPathComponent)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(src.lastPathComponent).font(Win.body(12, weight: .semibold))
+                                .foregroundStyle(Win.text).lineLimit(1).truncationMode(.middle)
+                            Text("From: \(info(src))").font(Win.body(11)).foregroundStyle(Win.textSecondary)
+                            Text("Existing: \(info(dst))").font(Win.body(11)).foregroundStyle(Win.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 5)
+                    }
+                    if n > 4 {
+                        Text("and \(n - 4) more").font(Win.body(11)).foregroundStyle(Win.textTertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 4)
+                    }
+                }
+                VStack(spacing: 2) {
+                    ConflictChoice(title: n == 1 ? "Replace the file in the destination" : "Replace the files in the destination",
+                                   detail: "The existing items go to the Bin") { choose(.replace) }
+                    ConflictChoice(title: n == 1 ? "Skip this file" : "Skip these files",
+                                   detail: "Nothing is changed for \(n == 1 ? "it" : "them")") { choose(.skip) }
+                    ConflictChoice(title: "Keep both files",
+                                   detail: "The new \(n == 1 ? "file" : "files") get a number added to the name") { choose(.rename) }
+                }
+            }
+            .padding(20)
+        } footer: {
+            WinDialogButton(title: "Cancel", action: onClose)
+        }
+    }
+}
+
+private struct ConflictChoice: View {
+    let title: String
+    let detail: String
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title).font(Win.body(13)).foregroundStyle(Win.text)
+            Text(detail).font(Win.body(11)).foregroundStyle(Win.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(WinRR(radius: 4).fill(hovering ? Win.subtleHover : .clear))
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .onTapGesture(perform: action)
+    }
+}

@@ -11,7 +11,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
-[![Tests](https://img.shields.io/badge/tests-118%20passing-6CCB5F?style=flat-square)](#tests)
+[![Tests](https://img.shields.io/badge/tests-123%20passing-6CCB5F?style=flat-square)](#tests)
 [![Build](https://github.com/Swallow74/windows-explorer-mac/actions/workflows/build.yml/badge.svg)](https://github.com/Swallow74/windows-explorer-mac/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
@@ -33,7 +33,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 | **Redrawn Fluent icons** | Segoe Fluent Icons isn't licensed onto macOS, so every glyph is redrawn as vector geometry on Windows' own 16pt design grid, including the two-tone accent treatment on cut, copy, paste, rename, share, sort and view. |
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
 | **Eight view modes** | Icon grids with live Quick Look thumbnails, List that flows into columns, Details with sortable resizable columns, Tiles, Content. **Group by** Name, Type, Date modified or Size, with collapsible Windows-style section headers (List, Tiles and Content ignore grouping, as Windows does). |
-| **It actually does the work** | Copy, cut and move — same-volume copies are APFS clones, instant and free until modified — paste with `- Copy` conflict naming, rename, ZIP, shortcuts, Recycle Bin and permanent delete, all with undo and redo. Drag and drop works inside the app, onto sidebar folders and Quick access tiles, and to and from Finder, with the drop target lighting up as you hover it. Rubber-band selection works from any empty space, additive with `Shift` or `Ctrl`. Clicking an already-selected name again turns it into an edit field, as in Explorer and Finder, while a double-click still opens. |
+| **It actually does the work** | Copy, cut and move — same-volume copies are APFS clones, instant and free until modified — paste with `- Copy` naming in the same folder and the Windows "Replace or Skip Files" prompt (replace, skip, keep both) when the destination already has the names, eject for external drives, rename, ZIP, shortcuts, Recycle Bin and permanent delete, all with undo and redo. Drag and drop works inside the app, onto sidebar folders and Quick access tiles, and to and from Finder, with the drop target lighting up as you hover it. Rubber-band selection works from any empty space, additive with `Shift` or `Ctrl`. Clicking an already-selected name again turns it into an edit field, as in Explorer and Finder, while a double-click still opens. |
 | **Power tools** | Dual pane, a background transfer queue with progress, archive browsing, batch rename, folder compare and sync, a drop shelf, workspaces, network shares and user-defined commands. Tabs get a right-click menu (duplicate, paste-to-tab, close), and dropping a file onto a tab sends it to that tab's folder without leaving the current one. |
 
 <div align="center">

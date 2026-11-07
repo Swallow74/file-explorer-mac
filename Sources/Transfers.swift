@@ -6,11 +6,14 @@ import AppKit
 struct TransferJob: Identifiable {
     enum Kind: String { case copy = "Copying", move = "Moving", delete = "Deleting" }
     enum State: Equatable { case waiting, running, finished, cancelled, failed(String) }
+    /// What to do when the destination already holds an item with the same name.
+    enum Conflict { case rename, replace, skip }
 
     let id = UUID()
     let kind: Kind
     let sources: [URL]
     let destination: URL?
+    var conflict: Conflict = .rename
     var state: State = .waiting
     var bytesTotal: Int64 = 0
     var bytesDone: Int64 = 0
@@ -83,8 +86,10 @@ final class TransferQueue: ObservableObject {
     // MARK: Submitting work
 
     func enqueue(kind: TransferJob.Kind, sources: [URL], to destination: URL?,
+                 conflict: TransferJob.Conflict = .rename,
                  onFinish: ((TransferJob) -> Void)? = nil) {
         var job = TransferJob(kind: kind, sources: sources, destination: destination)
+        job.conflict = conflict
         job.filesTotal = sources.count
         jobs.append(job)
         if let onFinish { completion[job.id] = onFinish }
@@ -191,8 +196,13 @@ final class TransferQueue: ObservableObject {
 
                 case .move:
                     guard let destination = job.destination else { continue }
-                    let target = Ops.uniqueURL(for: source.lastPathComponent,
-                                               in: destination, copySuffix: false)
+                    guard let target = Transfers.target(for: source, in: destination,
+                                                        policy: job.conflict, copySuffix: false) else {
+                        job.bytesDone += perSource[index].bytes
+                        job.filesDone += perSource[index].files
+                        update(job.id) { $0.bytesDone = job.bytesDone; $0.filesDone = job.filesDone }
+                        continue
+                    }
                     if Transfers.sameVolume(source, destination) {
                         try fm.moveItem(at: source, to: target)
                         job.moved.append((source, target))
@@ -222,8 +232,13 @@ final class TransferQueue: ObservableObject {
                     guard let destination = job.destination else { continue }
                     // Windows names every copy collision "name - Copy", not
                     // just the ones landing in the source's own folder.
-                    let target = Ops.uniqueURL(for: source.lastPathComponent,
-                                               in: destination, copySuffix: true)
+                    guard let target = Transfers.target(for: source, in: destination,
+                                                        policy: job.conflict, copySuffix: true) else {
+                        job.bytesDone += perSource[index].bytes
+                        job.filesDone += perSource[index].files
+                        update(job.id) { $0.bytesDone = job.bytesDone; $0.filesDone = job.filesDone }
+                        continue
+                    }
                     var isDir: ObjCBool = false
                     fm.fileExists(atPath: source.path, isDirectory: &isDir)
                     if !isDir.boolValue, Transfers.sameVolume(source, destination),
@@ -329,6 +344,36 @@ final class TransferQueue: ObservableObject {
 // MARK: - Helpers
 
 enum Transfers {
+    /// Where `source` lands in `destination`, or nil to skip it. Pasting into
+    /// the folder the item already lives in always renames; elsewhere the
+    /// conflict policy decides. Replace trashes the old item, so it can be
+    /// recovered (Windows overwrites in place).
+    static func target(for source: URL, in destination: URL,
+                       policy: TransferJob.Conflict, copySuffix: Bool) -> URL? {
+        let fm = FileManager.default
+        let natural = destination.appendingPathComponent(source.lastPathComponent)
+        let samePlace = source.deletingLastPathComponent().standardizedFileURL.path
+            == destination.standardizedFileURL.path
+        if policy == .rename || samePlace || !fm.fileExists(atPath: natural.path) {
+            return Ops.uniqueURL(for: source.lastPathComponent, in: destination, copySuffix: copySuffix)
+        }
+        if policy == .skip { return nil }
+        if (try? fm.trashItem(at: natural, resultingItemURL: nil)) == nil {
+            try? fm.removeItem(at: natural)
+        }
+        return natural
+    }
+
+    /// Sources whose name is already taken in `destination` by a different item.
+    static func conflicts(_ sources: [URL], in destination: URL) -> [URL] {
+        let fm = FileManager.default
+        let dst = destination.standardizedFileURL.path
+        return sources.filter {
+            $0.deletingLastPathComponent().standardizedFileURL.path != dst
+                && fm.fileExists(atPath: destination.appendingPathComponent($0.lastPathComponent).path)
+        }
+    }
+
     static func measure(_ url: URL) -> (bytes: Int64, files: Int) {
         let fm = FileManager.default
         var isDir: ObjCBool = false

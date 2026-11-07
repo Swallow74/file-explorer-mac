@@ -131,8 +131,25 @@ enum UndoAction {
 
 // MARK: - File operations
 
+/// Pending "Replace or Skip Files" question; `resolve` runs the transfer.
+struct ConflictPrompt {
+    let id = UUID()
+    let kind: TransferJob.Kind
+    let total: Int
+    let clashes: [URL]
+    let destination: URL
+    let resolve: (TransferJob.Conflict) -> Void
+}
+
 enum Ops {
     static let fm = FileManager.default
+
+    /// A mounted volume other than the startup disk, i.e. something Windows
+    /// would offer "Eject" on.
+    static func isEjectable(_ url: URL) -> Bool {
+        let p = url.standardizedFileURL.path
+        return p != "/" && Loader.volumes().contains { $0.url.standardizedFileURL.path == p }
+    }
 
     /// Windows-style conflict naming: "name - Copy", "name - Copy (2)", ...
     static func uniqueURL(for name: String, in dir: URL, copySuffix: Bool) -> URL {
@@ -286,6 +303,7 @@ final class Explorer: ObservableObject {
         case compare
         case connectServer
         case workspaces
+        case conflicts(ConflictPrompt)
         var id: String {
             switch self {
             case .properties(let i): return "props-\(i.count)-\(i.first?.id ?? "")"
@@ -297,6 +315,7 @@ final class Explorer: ObservableObject {
             case .compare: return "compare"
             case .connectServer: return "connect"
             case .workspaces: return "workspaces"
+            case .conflicts(let c): return "conflicts-\(c.id)"
             }
         }
     }
@@ -320,6 +339,7 @@ final class Explorer: ObservableObject {
     // MARK: Loading
 
     func reload() {
+        NavCache.clear()
         let loc = tab.location
         // Listing an archive spawns bsdtar, which can take seconds on a large
         // archive, so it runs off the main thread. Every other location is a
@@ -480,9 +500,18 @@ final class Explorer: ObservableObject {
         guard tabs.indices.contains(i), case .folder(let dir) = tabs[i].location else {
             NSSound.beep(); return
         }
+        resolveConflicts(kind: move ? .move : .copy, sources: urls, in: dir) { [weak self] policy in
+            self?.runTabDrop(i, dir: dir, urls: urls, move: move, conflict: policy,
+                             clearCutOnLand: clearCutOnLand)
+        }
+    }
+
+    private func runTabDrop(_ i: Int, dir: URL, urls: [URL], move: Bool,
+                            conflict: TransferJob.Conflict, clearCutOnLand: Bool) {
+        guard tabs.indices.contains(i) else { return }
         let destTab = tabs[i].id
         let destLoc = tabs[i].location
-        TransferQueue.shared.enqueue(kind: move ? .move : .copy, sources: urls, to: dir) { [weak self] job in
+        TransferQueue.shared.enqueue(kind: move ? .move : .copy, sources: urls, to: dir, conflict: conflict) { [weak self] job in
             guard let self else { return }
             switch job.state {
             case .failed(let message):
@@ -740,6 +769,20 @@ final class Explorer: ObservableObject {
         }
     }
 
+    /// Unmounts a volume; a busy one is reported the way Explorer does.
+    func eject(_ url: URL) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            do { try NSWorkspace.shared.unmountAndEjectDevice(at: url) }
+            catch {
+                DispatchQueue.main.async {
+                    self.sheet = .error("The device “\(Places.displayName(for: url))” is currently in use. Close any programs that might be using it, and then try again.")
+                }
+                return
+            }
+            DispatchQueue.main.async { self.reload() }
+        }
+    }
+
     func copySelection() {
         let sel = selectedItems
         guard !sel.isEmpty else { return }
@@ -771,7 +814,25 @@ final class Explorer: ObservableObject {
     /// the undo stack once it lands.
     func transfer(kind: TransferJob.Kind, sources: [URL], to destination: URL,
                   onSettled: ((Bool) -> Void)? = nil) {
-        TransferQueue.shared.enqueue(kind: kind, sources: sources, to: destination) { [weak self] job in
+        resolveConflicts(kind: kind, sources: sources, in: destination) { [weak self] policy in
+            self?.runTransfer(kind: kind, sources: sources, to: destination,
+                              conflict: policy, onSettled: onSettled)
+        }
+    }
+
+    /// Windows asks "Replace or Skip Files" when the destination already holds
+    /// items with the same names. No clash, no question.
+    func resolveConflicts(kind: TransferJob.Kind, sources: [URL], in destination: URL,
+                          then run: @escaping (TransferJob.Conflict) -> Void) {
+        let clashes = Transfers.conflicts(sources, in: destination)
+        guard !clashes.isEmpty else { run(.rename); return }
+        sheet = .conflicts(ConflictPrompt(kind: kind, total: sources.count, clashes: clashes,
+                                          destination: destination, resolve: run))
+    }
+
+    private func runTransfer(kind: TransferJob.Kind, sources: [URL], to destination: URL,
+                             conflict: TransferJob.Conflict, onSettled: ((Bool) -> Void)?) {
+        TransferQueue.shared.enqueue(kind: kind, sources: sources, to: destination, conflict: conflict) { [weak self] job in
             guard let self else { return }
             var succeeded = false
             switch job.state {

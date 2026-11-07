@@ -265,6 +265,8 @@ struct DialogHost: View {
             ConnectServerDialog { ex.sheet = nil }
         case .workspaces:
             WorkspacesDialog(model: model) { ex.sheet = nil }
+        case .conflicts(let prompt):
+            ConflictDialog(prompt: prompt, onClose: { ex.sheet = nil })
         }
     }
 }

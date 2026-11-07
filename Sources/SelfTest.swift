@@ -295,6 +295,34 @@ enum SelfTest {
         fm.createFile(atPath: big.path, contents: Data(count: 3 * 1024 * 1024))
 
         let queue = TransferQueue.shared
+
+        // Conflict policy: same name in a different folder.
+        let src = root.appendingPathComponent("cf-src"), dst = root.appendingPathComponent("cf-dst")
+        try? fm.createDirectory(at: src, withIntermediateDirectories: true)
+        try? fm.createDirectory(at: dst, withIntermediateDirectories: true)
+        let newFile = src.appendingPathComponent("c.txt"), oldFile = dst.appendingPathComponent("c.txt")
+        fm.createFile(atPath: newFile.path, contents: Data("new".utf8))
+        fm.createFile(atPath: oldFile.path, contents: Data("old".utf8))
+        check("a same-name file in another folder is a conflict",
+              Transfers.conflicts([newFile], in: dst) == [newFile])
+        check("pasting into the file's own folder is not a conflict",
+              Transfers.conflicts([newFile], in: src).isEmpty)
+        queue.enqueue(kind: .copy, sources: [newFile], to: dst, conflict: .skip) { skipJob in
+            check("skip leaves the existing file alone",
+                  skipJob.state == .finished && skipJob.created.isEmpty
+                  && (try? String(contentsOf: oldFile, encoding: .utf8)) == "old")
+            queue.enqueue(kind: .copy, sources: [newFile], to: dst, conflict: .replace) { repJob in
+                check("replace overwrites the existing file",
+                      repJob.state == .finished && (try? String(contentsOf: oldFile, encoding: .utf8)) == "new")
+                queue.enqueue(kind: .copy, sources: [newFile], to: dst, conflict: .rename) { renJob in
+                    check("keep both adds a suffix",
+                          renJob.state == .finished
+                          && fm.fileExists(atPath: dst.appendingPathComponent("c - Copy.txt").path))
+                    runPayload()
+                }
+            }
+        }
+        func runPayload() {
         queue.enqueue(kind: .copy, sources: [big], to: sub) { job in
             check("a queued copy finishes", job.state == .finished)
             check("progress reaches the full size",
@@ -326,6 +354,7 @@ enum SelfTest {
                     done()
                 }
             }
+        }
         }
         // The queue marks itself busy the moment work is handed over.
         check("the queue reports itself busy as soon as work is queued", queue.hasActive)

@@ -45,6 +45,11 @@ enum ContextMenus {
                 ex.sheet = .folderIcon(sel[0])
             })
         }
+        if single, Ops.isEjectable(sel[0].url) {
+            let url = sel[0].url
+            entries.append(.sep())
+            entries.append(MenuEntry(title: "Eject") { ex.eject(url) })
+        }
         if sel.count > 1 {
             entries.append(.sep())
             entries.append(MenuEntry(title: "Rename \(sel.count) items…", icon: .rename,

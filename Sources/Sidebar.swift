@@ -14,6 +14,32 @@ struct NavNode: Identifiable {
     let spacerAbove: Bool
 }
 
+/// The navigation pane re-evaluates on every selection or hover change; reading
+/// each expanded folder from disk every time made large folders stutter.
+/// Short-lived cache, dropped on every reload.
+enum NavCache {
+    private static var dirs: [String: (at: Date, items: [FileItem])] = [:]
+    private static var volumes: (at: Date, items: [FileItem])?
+    private static let ttl: TimeInterval = 5
+
+    static func folders(in url: URL, showHidden: Bool) -> [FileItem] {
+        let key = "\(showHidden):\(url.path)"
+        if let hit = dirs[key], Date().timeIntervalSince(hit.at) < ttl { return hit.items }
+        let items = Loader.contents(of: url, showHidden: showHidden).filter { $0.isDirectory && !$0.isPackage }
+        dirs[key] = (Date(), items)
+        return items
+    }
+
+    static func mounted() -> [FileItem] {
+        if let v = volumes, Date().timeIntervalSince(v.at) < ttl { return v.items }
+        let items = Loader.volumes()
+        volumes = (Date(), items)
+        return items
+    }
+
+    static func clear() { dirs.removeAll(); volumes = nil }
+}
+
 struct NavPane: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
@@ -47,8 +73,7 @@ struct NavPane: View {
         let places = Places.sidebar
 
         func children(of url: URL, level: Int, parentID: String) {
-            let dirs = Loader.contents(of: url, showHidden: Prefs.shared.showHidden)
-                .filter { $0.isDirectory && !$0.isPackage }
+            let dirs = NavCache.folders(in: url, showHidden: Prefs.shared.showHidden)
             for d in dirs.prefix(60) {
                 let id = "\(parentID)/\(d.name)"
                 out.append(NavNode(id: id, title: d.name, icon: .folderOutline, accent: .neutral,
@@ -76,7 +101,7 @@ struct NavPane: View {
                                spacerAbove: spacer && i > 0))
             if ex.navExpanded.contains(p.id) {
                 if p.special == .thisPC {
-                    for v in Loader.volumes() {
+                    for v in NavCache.mounted() {
                         let id = "thispc/\(v.name)"
                         out.append(NavNode(id: id, title: Places.displayName(for: v.url), icon: .drive,
                                            accent: .neutral, location: .folder(v.url), url: v.url,
@@ -183,6 +208,9 @@ struct NavRow: View {
             entries.append(MenuEntry(title: "Open in new window") { AppState.shared.openNewWindow(at: loc) })
         }
         guard let url = node.url else { return entries }
+        if Ops.isEjectable(url) {
+            entries.append(MenuEntry(title: "Eject") { ex.eject(url) })
+        }
         let settings = Settings.shared
         let pinned = settings.isPinned(url) && !settings.hiddenPlaces.contains(url.path)
         entries.append(.sep())
