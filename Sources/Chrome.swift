@@ -21,6 +21,11 @@ struct TitleBar: View {
                                 menus.show(id: "tab-\(idx)-\(t.id)", anchor: .zero,
                                            entries: tabMenu(idx), width: 220,
                                            iconRow: nil, point: point)
+                            },
+                            onDropInto: { providers in
+                                guard ex.tabs.indices.contains(idx),
+                                      case .folder(let dir) = ex.tabs[idx].location else { return false }
+                                return DropHandler.handle(providers: providers, into: dir, ex: ex)
                             })
                 }
                 WinButton(tooltip: "New tab (Ctrl+T)", padding: 8, height: 28, corner: 4) {
@@ -77,7 +82,9 @@ struct TabChip: View {
     let onSelect: () -> Void
     let onClose: () -> Void
     var onContext: (CGPoint) -> Void = { _ in }
+    var onDropInto: ([NSItemProvider]) -> Bool = { _ in false }
     @State private var hovering = false
+    @State private var dropTargeted = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -111,6 +118,8 @@ struct TabChip: View {
         .overlay(alignment: .bottom) {
             if active { Rectangle().fill(Win.tabActive).frame(height: 6).offset(y: 3) }
         }
+        .overlay(WinRR(radius: 6).stroke(Win.accent.opacity(dropTargeted ? 1 : 0), lineWidth: 2))
+        .onDrop(of: [.fileURL], isTargeted: $dropTargeted, perform: onDropInto)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture(perform: onSelect)

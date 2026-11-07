@@ -33,7 +33,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
 | **Eight view modes** | Icon grids with live Quick Look thumbnails, List that flows into columns, Details with sortable resizable columns, Tiles, Content. **Group by** Name, Type, Date modified or Size, with collapsible Windows-style section headers (List, Tiles and Content ignore grouping, as Windows does). |
 | **It actually does the work** | Copy, cut and move — same-volume copies are APFS clones, instant and free until modified — paste with `- Copy` conflict naming, rename, ZIP, shortcuts, Recycle Bin and permanent delete, all with undo and redo. Drag and drop works inside the app, onto sidebar folders and Quick access tiles, and to and from Finder, with the drop target lighting up as you hover it. Rubber-band selection works from any empty space, additive with `Shift` or `Ctrl`. |
-| **Power tools** | Dual pane, a background transfer queue with progress, archive browsing, batch rename, folder compare and sync, a drop shelf, workspaces, network shares and user-defined commands. |
+| **Power tools** | Dual pane, a background transfer queue with progress, archive browsing, batch rename, folder compare and sync, a drop shelf, workspaces, network shares and user-defined commands. Tabs get a right-click menu (duplicate, paste-to-tab, close), and dropping a file onto a tab sends it to that tab's folder without leaving the current one. |
 
 <div align="center">
 <img src="docs/details.png" width="440" alt="Details view"> <img src="docs/icons-view.png" width="440" alt="Large icons view with thumbnails">

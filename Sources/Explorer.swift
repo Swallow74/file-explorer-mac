@@ -462,18 +462,27 @@ final class Explorer: ObservableObject {
     }
 
     /// Paste into another tab's folder without leaving the current one.
-    /// The transfer lands on the destination folder, the tab refreshes, and
-    /// the undo history stays with the pane that started it.
+    /// The transfer lands through the same background queue, keeps undo in
+    /// the starting pane, refreshes the destination tab even when it is not
+    /// the visible one, and honours the cut marker on the clipboard.
     func paste(toTabAt i: Int) {
-        guard tabs.indices.contains(i), case .folder(let dir) = tabs[i].location else {
-            NSSound.beep(); return
-        }
+        guard tabs.indices.contains(i) else { NSSound.beep(); return }
         let urls = Clipboard.urls
         guard !urls.isEmpty else { NSSound.beep(); return }
         let cutting = Clipboard.isCut
+        drop(toTabAt: i, urls: urls, move: cutting, clearCutOnLand: cutting)
+    }
+
+    /// A drag that lands on a tab drops its files into that tab's folder,
+    /// whether or not the tab is showing. Spring-loaded tabs without the
+    /// hover timer: one gesture, explicit target.
+    func drop(toTabAt i: Int, urls: [URL], move: Bool, clearCutOnLand: Bool = false) {
+        guard tabs.indices.contains(i), case .folder(let dir) = tabs[i].location else {
+            NSSound.beep(); return
+        }
         let destTab = tabs[i].id
         let destLoc = tabs[i].location
-        TransferQueue.shared.enqueue(kind: cutting ? .move : .copy, sources: urls, to: dir) { [weak self] job in
+        TransferQueue.shared.enqueue(kind: move ? .move : .copy, sources: urls, to: dir) { [weak self] job in
             guard let self else { return }
             switch job.state {
             case .failed(let message):
@@ -482,7 +491,7 @@ final class Explorer: ObservableObject {
             case .finished:
                 if !job.moved.isEmpty { self.push(.move(items: job.moved)) }
                 if !job.created.isEmpty { self.push(.copy(created: job.created)) }
-                if cutting { Clipboard.clearCut() }
+                if clearCutOnLand { Clipboard.clearCut() }
             default: break
             }
             guard let j = self.tabs.firstIndex(where: { $0.id == destTab }),
