@@ -1,11 +1,12 @@
 #!/bin/bash
-# Builds File Explorer.app from source. Requires only the Xcode Command Line Tools.
+# Builds File Explorer.app from source. Needs the Swift 6 toolchain from Xcode
+# (the Command Line Tools lack the SwiftUI macro plugin).
 set -e
 cd "$(dirname "$0")"
 
 command -v swiftc >/dev/null 2>&1 || {
-    echo "swiftc not found. Install the Xcode Command Line Tools:"
-    echo "    xcode-select --install"
+    echo "swiftc not found. Install Xcode, or point xcode-select at one:"
+    echo "    sudo xcode-select -s /Applications/Xcode.app"
     exit 1
 }
 

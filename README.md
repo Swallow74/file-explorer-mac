@@ -83,7 +83,7 @@ Everything below is optional. Turn a feature off and the app is still the Explor
 
 ## Build
 
-Requires only the Xcode Command Line Tools. No Xcode project, no Node, no Homebrew.
+Requires the Swift 6 toolchain that ships with Xcode. The Command Line Tools alone are not enough: SwiftUI's `@State` and friends expand through the `SwiftUIMacros` plugin, which only ships inside a full Xcode. No Xcode project, no Node, no Homebrew.
 
 ```bash
 git clone https://github.com/gmazaratti/windows-explorer-mac.git
@@ -254,7 +254,9 @@ Two decisions worth calling out:
 WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 ```
 
-Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename, delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. **109 checks.**
+Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename, delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. **109 checks.** The suite is deterministic: it never depends on the order background transfers land in.
+
+GitHub Actions runs the build, the signature check and this suite on every push (`.github/workflows/build.yml`), and uploads the universal app as a workflow artifact.
 
 Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_SIZE=1400x900` opens at a given size, `WINEXP_TEST=menu:context|dialog:settings|dialog:about|dual|dual-home|rename|archive|compare|marquee|drop` opens a particular menu, dialog or layout for inspection, and `WINEXP_DEMO=<dir>` drives the scripted tour that produces the animation at the top of this page.
 
