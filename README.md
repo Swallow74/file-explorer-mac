@@ -214,6 +214,7 @@ Sources/
   FileIcons.swift      Folder and file-type artwork, Quick Look thumbnails
   Model.swift          FileItem, Windows metadata formatting, known folders
   Explorer.swift       Tabs, history, selection, clipboard, file ops, undo, search
+  Grouping.swift       The "Group by" buckets and their Windows labels
   Settings.swift       Re-mappable shortcuts, theme, folder icons, pinning
   WindowModel.swift    One or two panes per window
   Transfers.swift      Background copy and move queue with progress
@@ -236,7 +237,9 @@ Sources/
   ContextMenus.swift   Right-click menus
   ContentView.swift    Root layout, flyout and dialog hosting
   App.swift            Window setup, key bindings, menu bar
+  main.swift           The executable's entry point
   SelfTest.swift       End-to-end checks
+  Demo.swift           The scripted tour behind the README animation
 Tools/
   MakeIcon.swift       Draws the app icon, one render per icon-set size
   release.sh           Signs, notarizes and staples a release build
