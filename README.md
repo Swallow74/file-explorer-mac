@@ -46,17 +46,13 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 
 Grab the latest build from [Releases](https://github.com/gmazaratti/windows-explorer-mac/releases/latest). Universal binary, Apple Silicon and Intel, macOS 14 or newer.
 
-The app is ad-hoc signed but **not notarized**, because notarization requires a paid Apple Developer account. macOS will therefore refuse to open it the first time. Either:
+Since 1.3.1 the release is signed with a Developer ID and **notarized by Apple**: unzip, drag to Applications and double-click, nothing to unblock. Releases up to 1.3.0 were only ad-hoc signed; if macOS refuses one of those, use **System Settings > Privacy & Security > Open Anyway**, or clear the quarantine flag:
 
-- **System Settings > Privacy & Security**, scroll down to the message about File Explorer, and click **Open Anyway**, or
-- follow the step-by-step guide in the zip (**README - Come sbloccare l'app.txt**, Italian/English), or
-- clear the quarantine flag yourself:
+```bash
+xattr -dr com.apple.quarantine "/Applications/File Explorer.app"
+```
 
-  ```bash
-  xattr -dr com.apple.quarantine "/Applications/File Explorer.app"
-  ```
-
-If you would rather not do either, build it from source. That takes one command and produces a binary macOS trusts, because it never came from the internet.
+If you would rather not trust a download at all, build it from source. That takes one command and produces a binary macOS trusts, because it never came from the internet.
 
 ## Power tools
 
