@@ -43,6 +43,7 @@ enum NavCache {
 struct NavPane: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
+    @ObservedObject private var settings = Settings.shared   // pins/unpins redraw the list
     @State private var hoverID: String?
     @State private var pinTargeted = false
 
