@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# One runner per branch: a new push replaces the queued run rather than
+# piling up behind it.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     # macos-14 maps to the ARM pool, which GitHub rejects for this account
