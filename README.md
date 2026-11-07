@@ -227,6 +227,7 @@ Sources/
   Settings.swift       Re-mappable shortcuts, theme, folder icons, pinning
   WindowModel.swift    One or two panes per window
   Transfers.swift      Background copy and move queue with progress
+  Updater.swift        Update check against GitHub Releases and self-update
   Archives.swift       Reading and extracting zip and tar archives
   BatchRename.swift    The rename rule and its dialog
   CompareSync.swift    Folder comparison and one-way sync
@@ -252,6 +253,7 @@ Sources/
 Tools/
   MakeIcon.swift       Draws the app icon, one render per icon-set size
   release.sh           Signs, notarizes and staples a release build
+  package.sh           Zips the release with its install instructions
 build.sh               Compiles and assembles the .app bundle
 ```
 
@@ -283,18 +285,63 @@ Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<
 - **Undo history is per pane.** Each pane undoes its own operations; Windows keeps one history per window.
 - **A dragged selection carries the item under the pointer.** Windows drags the whole selection.
 
+## Changes in this fork
+
+Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-explorer-mac), maintained by [Alessandro Del Rosso](https://github.com/Swallow74). Everything below was added on top of the original 1.0 code base.
+
+**File operations**
+- **Replace or Skip Files** dialog, as in Windows: replace, skip or keep both when the destination already has the names.
+- **Progress dialog** modelled on the Windows 11 copy window: percentage, live speed graph, name, time left and item count.
+- **APFS clones** for same-volume copies: instant at any size, free until modified. exFAT and network mounts fall back to the byte copy.
+- **Eject** for external drives and network shares, from the context menu and the sidebar.
+- Safer transfers: a failed cross-volume move records its orphaned copy so undo can remove it, same-volume moves advance the bar per item, cancel no longer stalls the main thread, copy collisions always get the `- Copy` suffix.
+- Undo and redo are honest: per-item failures are reported, only what really reverted is redoable, undoing *New folder* restores the same items, and every tab showing a touched folder refreshes.
+- **Hostile archives refused.** A zip with a member named `-P` could write outside the extraction folder; entry names are now passed to `bsdtar` after `--`, and a folder copied into itself is rejected.
+
+**Navigation and views**
+- **Group by** is real: Name, Type, Date modified (Today, Yesterday, Earlier this week, and so on) and Size (Tiny to Gigantic), with collapsible section headers in Details, as in Explorer. Arrow keys follow the on-screen order, including folded groups.
+- **Navigation pane follows you**: the folder tree expands on its own down the path you are viewing, and is cached so it does not flicker or rescan.
+- **User folders resolved through the system**: Desktop, Documents and the others still work when they have been moved or are symlinks.
+- Home and This PC watch `/Volumes`, so an unplugged drive disappears instead of lingering.
+- **Tabs**: right-click menu (duplicate, paste into tab, close), drop files onto a tab to land them in its folder, `Ctrl+Shift+T` reopens the last closed tab, a closed tab before the active one no longer changes the selection.
+- `Ctrl+Scroll` zooms icons in discrete steps instead of a continuous, jumpy scale.
+
+**Selection and input**
+- `Shift`/`Ctrl`/`Cmd`+click uses the modifiers held **at press time**, so a quick click-and-release no longer collapses a multi-selection.
+- Rubber-band selection no longer swallows clicks on open menus, and picks the right window when two Explorers are open.
+- Inline rename commits on focus loss; case-only renames work on case-insensitive APFS; shortcut re-mapping detects real conflicts.
+- Column, pane-divider and details-pane resize track the pointer 1:1 (they used to compound).
+
+**Updates and distribution**
+- **Update notification**: the app checks the GitHub Releases of the fork at launch (at most once a day) and from the app menu, and lets you skip a version.
+- **One-click self-update**: it downloads the release, verifies it, replaces the installed app and reopens it. If that is not possible it opens the download page instead. A fork can point the check elsewhere with the `FEUpdateRepo` key in `Info.plist`.
+- **Notarized releases** from 1.3.1: Developer ID signature, `Tools/release.sh` signs, notarizes and staples, `Tools/package.sh` builds the zip.
+- `build.sh` builds for the host architecture by default (`--universal` for both), checks that `swiftc` exists, and passes `FE_VERSION` to the bundle so the About panel shows the real version.
+- **CI** on GitHub Actions: universal build, signature check, self-test, app uploaded as an artifact; one queued build per branch.
+- The README now says plainly that building needs a full Xcode, not just the Command Line Tools.
+
+**Tests**
+- The self-test suite grew from 49 to more than 118 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
+
+Ideas and behaviours borrowed from other open-source Mac explorers (MacXplorer, MaXplorer, MacExplorer, explorer-macos) were **reimplemented from scratch**; no code from GPL projects is included.
+
 ## Credits
 
 **Created by [Alex Degryse](https://www.linkedin.com/in/alexdegryse)**, [linkedin.com/in/alexdegryse](https://www.linkedin.com/in/alexdegryse) and [github.com/gmazaratti](https://github.com/gmazaratti)
+
+**Fork and modifications by [Alessandro Del Rosso](https://github.com/Swallow74)**
 
 Not affiliated with or endorsed by Microsoft. Windows, Windows 11, File Explorer, Segoe and Fluent are trademarks of Microsoft Corporation. All artwork in this project is original: the app icon is drawn from scratch by `Tools/MakeIcon.swift`, and the in-app iconography is original vector work laid out on Fluent's design grid.
 
 ## License
 
-[Apache License 2.0](LICENSE), copyright 2026 Alex Degryse.
+[Apache License 2.0](LICENSE).
+
+- Copyright 2026 Alex Degryse (original work).
+- Modifications copyright 2026 Alessandro Del Rosso (this fork, see [Changes in this fork](#changes-in-this-fork)).
 
 You are free to use, modify and redistribute it, including commercially. In
 return the licence requires that the [NOTICE](NOTICE) file travels with any copy
-or derivative you distribute, which credits Alex Degryse and links back to this
-repository. If you ship it inside an app, that notice belongs in your
+or derivative you distribute, which credits Alex Degryse and links back to the
+original repository. If you ship it inside an app, that notice belongs in your
 acknowledgements screen.
