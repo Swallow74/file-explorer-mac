@@ -7,7 +7,10 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: macos-14
+    # macos-14 maps to the ARM pool, which GitHub rejects for this account
+    # ("configuration macos-14-arm64-us-default is not supported"). The Intel
+    # runner still builds both slices; the self-test executes the x86_64 one.
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
 
