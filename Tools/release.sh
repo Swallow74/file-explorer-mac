@@ -7,7 +7,7 @@
 #      (or download it from developer.apple.com/account/resources/certificates)
 #   2. Store notarization credentials in the keychain, which prompts for an
 #      app-specific password from appleid.apple.com:
-#      xcrun notarytool store-credentials winexp-notary \
+#      xcrun notarytool store-credentials dev-notary \
 #          --apple-id you@example.com --team-id YOURTEAMID
 #
 # Then:  ./Tools/release.sh 1.0.1
@@ -15,7 +15,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 VERSION="${1:?usage: release.sh <version>}"
-PROFILE="${NOTARY_PROFILE:-winexp-notary}"
+PROFILE="${NOTARY_PROFILE:-dev-notary}"
 APP="build/File Explorer.app"
 ZIP="build/FileExplorer-$VERSION-macOS-universal.zip"
 
