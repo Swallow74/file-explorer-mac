@@ -123,6 +123,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppState.shared.openNewWindow(at: start)
         installKeyHandler()
         NSApp.activate(ignoringOtherApps: true)
+        if env["WINEXP_SELFTEST"] == nil && env["WINEXP_DEMO"] == nil && env["WINEXP_SNAPSHOT"] == nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { Updater.checkAtLaunch() }
+        }
         if env["WINEXP_SELFTEST"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { SelfTest.run() }
         }
@@ -148,6 +151,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc private func checkForUpdates() { Updater.check(manual: true) }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -163,6 +168,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About File Explorer", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let upd = appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        upd.target = self
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide File Explorer", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(withTitle: "Quit File Explorer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
