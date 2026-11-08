@@ -487,3 +487,4 @@
 "Shell Script" = "Shellový skript";
 "Windows Batch File" = "Dávkový soubor Windows";
 "Windows PowerShell Script" = "Skript Windows PowerShell";
+"%1$@ free of %2$@" = "%1$@ volných z %2$@";

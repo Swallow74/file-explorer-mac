@@ -487,3 +487,4 @@
 "Shell Script" = "Skrypt powłoki";
 "Windows Batch File" = "Plik wsadowy systemu Windows";
 "Windows PowerShell Script" = "Skrypt Windows PowerShell";
+"%1$@ free of %2$@" = "Wolne: %1$@ z %2$@";

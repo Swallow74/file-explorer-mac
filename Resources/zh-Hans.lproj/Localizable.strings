@@ -487,3 +487,4 @@
 "Shell Script" = "Shell 脚本";
 "Windows Batch File" = "Windows 批处理文件";
 "Windows PowerShell Script" = "Windows PowerShell 脚本";
+"%1$@ free of %2$@" = "可用 %1$@，共 %2$@";

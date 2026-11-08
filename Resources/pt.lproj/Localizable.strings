@@ -487,3 +487,4 @@
 "Shell Script" = "Script de shell";
 "Windows Batch File" = "Arquivo em lotes do Windows";
 "Windows PowerShell Script" = "Script do Windows PowerShell";
+"%1$@ free of %2$@" = "%1$@ livres de %2$@";

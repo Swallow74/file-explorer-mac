@@ -487,3 +487,4 @@
 "Shell Script" = "Скрипт оболонки";
 "Windows Batch File" = "Пакетний файл Windows";
 "Windows PowerShell Script" = "Скрипт Windows PowerShell";
+"%1$@ free of %2$@" = "Вільно %1$@ із %2$@";

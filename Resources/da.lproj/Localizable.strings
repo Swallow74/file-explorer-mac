@@ -487,3 +487,4 @@
 "Shell Script" = "Shellscript";
 "Windows Batch File" = "Windows-batchfil";
 "Windows PowerShell Script" = "Windows PowerShell-script";
+"%1$@ free of %2$@" = "%1$@ ledigt af %2$@";

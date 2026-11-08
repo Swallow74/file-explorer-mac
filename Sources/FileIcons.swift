@@ -249,7 +249,7 @@ struct ItemIcon: View {
     var body: some View {
         switch item.kind {
         case .folder:
-            FolderGlyph(url: item.url, size: size)
+            if item.isVolume { DriveIcon(size: size) } else { FolderGlyph(url: item.url, size: size) }
         case .archive:
             ArchiveIcon(size: size)
         case .app, .executable:

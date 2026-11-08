@@ -487,3 +487,4 @@
 "Shell Script" = "Skalskript";
 "Windows Batch File" = "Windows-batchfil";
 "Windows PowerShell Script" = "Windows PowerShell-skript";
+"%1$@ free of %2$@" = "%1$@ ledigt av %2$@";

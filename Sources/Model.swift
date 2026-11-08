@@ -23,6 +23,9 @@ struct FileItem: Identifiable, Hashable {
 
     var id: String { url.path }
 
+    /// A mount point: the startup disk or something mounted under /Volumes.
+    var isVolume: Bool { url.path == "/" || url.deletingLastPathComponent().path == "/Volumes" }
+
     static func == (a: FileItem, b: FileItem) -> Bool { a.url == b.url }
     func hash(into h: inout Hasher) { h.combine(url) }
 

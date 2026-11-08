@@ -487,3 +487,4 @@
 "Shell Script" = "Kabuk Betiği";
 "Windows Batch File" = "Windows Toplu İş Dosyası";
 "Windows PowerShell Script" = "Windows PowerShell Betiği";
+"%1$@ free of %2$@" = "%2$@ içinde %1$@ boş";

@@ -487,3 +487,4 @@
 "Shell Script" = "Σενάριο φλοιού";
 "Windows Batch File" = "Αρχείο δέσμης Windows";
 "Windows PowerShell Script" = "Σενάριο Windows PowerShell";
+"%1$@ free of %2$@" = "%1$@ ελεύθερα από %2$@";
