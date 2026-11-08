@@ -489,3 +489,4 @@
 "Windows PowerShell Script" = "Skript Windows PowerShell";
 "%1$@ free of %2$@" = "%1$@ volných z %2$@";
 "No network hosts found." = "Nenalezeni žádní hostitelé v síti.";
+"Waiting for the network drive…" = "Čekání na síťovou jednotku…";

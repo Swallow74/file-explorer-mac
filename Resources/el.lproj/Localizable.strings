@@ -489,3 +489,4 @@
 "Windows PowerShell Script" = "Σενάριο Windows PowerShell";
 "%1$@ free of %2$@" = "%1$@ ελεύθερα από %2$@";
 "No network hosts found." = "Δεν βρέθηκαν υπολογιστές δικτύου.";
+"Waiting for the network drive…" = "Αναμονή για τη δικτυακή μονάδα…";

@@ -489,3 +489,4 @@
 "Windows PowerShell Script" = "Windows PowerShell 脚本";
 "%1$@ free of %2$@" = "可用 %1$@，共 %2$@";
 "No network hosts found." = "未找到网络主机。";
+"Waiting for the network drive…" = "正在等待网络驱动器…";

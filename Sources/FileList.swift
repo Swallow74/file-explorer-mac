@@ -125,7 +125,7 @@ struct FileArea: View {
                 NetworkView(ex: ex)
             } else if case .thisPC = ex.tab.location, !ex.tab.searching, !ex.tab.items.isEmpty {
                 ThisPCView(ex: ex, menus: menus)
-            } else if ex.tab.items.isEmpty {
+            } else if ex.tab.items.isEmpty && !ex.waitingOnCurrentTab {
                 EmptyFolderView(ex: ex, menus: menus)
             } else {
                 switch prefs.viewMode {
@@ -156,6 +156,13 @@ struct FileArea: View {
                 .animation(.easeOut(duration: 0.15), value: dropTargeted)
                 .allowsHitTesting(false)
         )
+        .overlay {
+            // A sleeping network share can take minutes to list; say so
+            // loudly instead of letting the window look hung.
+            if ex.waitingOnCurrentTab {
+                WaitOverlay()
+            }
+        }
         .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
             guard let dir = ex.currentDirectory else { return false }
             dropTargeted = false
@@ -175,6 +182,55 @@ struct FileArea: View {
 
 extension Notification.Name {
     static let backgroundContextMenu = Notification.Name("winexp.bgContextMenu")
+}
+
+/// The classic hourglass, told the Windows way: a card floating over the
+/// content while a network volume's listing runs off the main thread, plus
+/// a real hourglass cursor. The machine is working, not hung.
+struct WaitOverlay: View {
+    @State private var flipped = false
+
+    /// AppKit dropped the wait cursor; draw the hourglass from the SF Symbol.
+    static let hourglassCursor: NSCursor = {
+        let size = NSSize(width: 24, height: 24)
+        let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        let symbol = NSImage(systemSymbolName: "hourglass", accessibilityDescription: nil)?
+            .withSymbolConfiguration(config) ?? NSImage()
+        let image = NSImage(size: size)
+        image.lockFocus()
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.6)
+        shadow.shadowBlurRadius = 2
+        shadow.shadowOffset = NSSize(width: 0, height: -1)
+        shadow.set()
+        symbol.draw(in: NSRect(origin: .zero, size: size))
+        image.unlockFocus()
+        return NSCursor(image: image, hotSpot: NSPoint(x: 12, y: 12))
+    }()
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "hourglass")
+                .font(.system(size: 24, weight: .light))
+                .foregroundStyle(Win.accent)
+                .rotationEffect(.degrees(flipped ? 180 : 0))
+                .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: flipped)
+            Text(tr("Waiting for the network drive…"))
+                .font(Win.body(12))
+                .foregroundStyle(Win.textSecondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(WinRR(radius: 8).fill(Win.flyout))
+        .overlay(WinRR(radius: 8).stroke(Win.cardStroke, lineWidth: 1))
+        .shadow(color: .black.opacity(0.25), radius: 14, y: 5)
+        .onAppear {
+            flipped = true
+            WaitOverlay.hourglassCursor.push()
+        }
+        .onDisappear { NSCursor.pop() }
+        .allowsHitTesting(false)
+    }
 }
 
 /// Windows' section band: chevron, bucket name, item count. Click folds

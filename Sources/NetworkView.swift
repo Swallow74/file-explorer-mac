@@ -1,6 +1,7 @@
 import SwiftUI
 import Network
 import Darwin
+import SystemConfiguration
 
 /// Where a mounted network share comes from, read from the kernel's mount table.
 struct NetMount {
@@ -78,6 +79,26 @@ final class NetworkHosts: ObservableObject {
         let name: String
         let mount: NetMount?
     }
+
+    /// Keys that identify this very machine however it was found: its own
+    /// name and any of its hostnames, run through `NetHost.key`. The Mac
+    /// must never show as a tile of its own network, as Finder does.
+    ///
+    /// Only the local dynamic store and syscalls answer these: `Host.names`
+    /// resolves through DNS, which can block minutes when a share's host is
+    /// asleep — on the main thread that froze the whole window.
+    private static let localKeys: Set<String> = {
+        var keys: Set<String> = []
+        func add(_ raw: String?) {
+            guard let raw, !raw.isEmpty else { return }
+            keys.insert(NetHost.key(for: raw))
+        }
+        add(SCDynamicStoreCopyComputerName(nil, nil) as String?)
+        add(SCDynamicStoreCopyLocalHostName(nil) as String?)
+        var host = [CChar](repeating: 0, count: 256)
+        if gethostname(&host, host.count) == 0 { add(String(cString: host)) }
+        return keys
+    }()
 
     private func track(_ work: @escaping () -> Void, done: @escaping () -> Void) {
         busy += 1
@@ -187,10 +208,10 @@ final class NetworkHosts: ObservableObject {
             if map[key] == nil { map[key] = NetHost(key: key, name: NetHost.displayName(host), address: host, user: u.user) }
         }
         let knownAddresses = Set(map.values.map(\.address))
-        for (key, found) in scanned where map[key] == nil && !knownAddresses.contains(found.ip) {
+        for (key, found) in scanned where map[key] == nil && !Self.localKeys.contains(key) && !knownAddresses.contains(found.ip) {
             map[key] = NetHost(key: key, name: found.name, address: found.ip)
         }
-        for (key, name) in discovered where map[key] == nil && name != Host.current().localizedName {
+        for (key, name) in discovered where map[key] == nil && !Self.localKeys.contains(key) {
             map[key] = NetHost(key: key, name: name,
                                address: name.replacingOccurrences(of: " ", with: "-") + ".local")
         }

@@ -307,6 +307,12 @@ final class Explorer: ObservableObject {
     @Published var navExpanded: Set<String> = ["thispc"]
     @Published var filterKind: String? = nil
     @Published var collapsedGroups: Set<String> = []
+    /// Tab whose remote-folder listing is running in the background; the
+    /// file area overlays an hourglass while it is the one on screen.
+    @Published private(set) var waitingTab: UUID? = nil
+    private var waitGen = 0
+
+    var waitingOnCurrentTab: Bool { waitingTab == tab.id }
 
     struct ItemGroup: Identifiable {
         let title: String
@@ -379,10 +385,14 @@ final class Explorer: ObservableObject {
         NavCache.clear()
         let loc = tab.location
         // Listing an archive spawns bsdtar, which can take seconds on a large
-        // archive, so it runs off the main thread. Every other location is a
-        // plain directory read and stays synchronous.
+        // archive, so it runs off the main thread. So does any folder on a
+        // network volume: a sleeping NAS can take over a minute to list, and
+        // reading it on the main thread froze the whole window. The old
+        // content stays up behind the hourglass overlay until the new
+        // listing lands.
         if case .archive(let archive, let inner) = loc {
             let tabID = tab.id
+            waitingTab = nil
             var t = tab
             t.items = []
             tab = t
@@ -392,6 +402,22 @@ final class Explorer: ObservableObject {
             }
             return
         }
+        if case .folder(let url) = loc, Loader.isRemote(url) {
+            let tabID = tab.id
+            let showHidden = prefs.showHidden
+            waitGen += 1
+            let gen = waitGen
+            waitingTab = tabID
+            DispatchQueue.global(qos: .userInitiated).async {
+                let children = Loader.contents(of: url, showHidden: showHidden)
+                DispatchQueue.main.async {
+                    if self.waitingTab == tabID, gen == self.waitGen { self.waitingTab = nil }
+                    self.apply(children, toTab: tabID, expecting: loc)
+                }
+            }
+            return
+        }
+        waitingTab = nil
         var items: [FileItem] = []
         switch loc {
         case .home:

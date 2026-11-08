@@ -489,3 +489,4 @@
 "Windows PowerShell Script" = "Script Windows PowerShell";
 "%1$@ free of %2$@" = "%1$@ liberi su %2$@";
 "No network hosts found." = "Nessun host di rete trovato.";
+"Waiting for the network drive…" = "In attesa dell'unità di rete…";

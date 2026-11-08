@@ -411,6 +411,15 @@ enum Loader {
         return out
     }
 
+    /// Whether the volume holding `url` is mounted over the network (SMB,
+    /// AFP, NFS, WebDAV...). The kernel's mount table answers instantly —
+    /// unlike the share itself, which may take minutes to wake up.
+    static func isRemote(_ url: URL) -> Bool {
+        var s = statfs()
+        guard statfs(url.path, &s) == 0 else { return false }
+        return s.f_flags & UInt32(MNT_LOCAL) == 0
+    }
+
     /// Windows-style natural sort: folders first, then numeric-aware name comparison.
     static func sort(_ items: [FileItem], by key: SortKey, ascending: Bool) -> [FileItem] {
         let sorted = items.sorted { a, b in
