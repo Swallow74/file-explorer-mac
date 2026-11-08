@@ -40,6 +40,7 @@
 "Forward (Alt+Right)" = "Dalej (Alt+→)";
 "Up to %@ (Alt+Up)" = "W górę do: %@ (Alt+↑)";
 "Refresh (F5)" = "Odśwież (F5)";
+"History" = "Historia";
 "Home" = "Start";
 "Path" = "Ścieżka";
 "Click to type the path (Ctrl+L)" = "Kliknij, aby wpisać ścieżkę (Ctrl+L)";

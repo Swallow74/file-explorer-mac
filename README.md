@@ -326,6 +326,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Hostile archives refused.** A zip with a member named `-P` could write outside the extraction folder; entry names are now passed to `bsdtar` after `--`, and a folder copied into itself is rejected.
 
 **Navigation and views**
+- **Nav bar matches Windows 11**: a `⌄` history button between forward and up opens the tab's whole navigation history with the current page checked, and Refresh now sits after the address bar (before the search box) instead of beside the arrows.
 - **Sidebar favourites**: drag a folder onto the navigation pane (not onto a row) to pin it, as in the Finder; right-click > *Unpin from Quick access* removes it; the sidebar updates at once.
 - **Group by** is real: Name, Type, Date modified (Today, Yesterday, Earlier this week, and so on) and Size (Tiny to Gigantic), with collapsible section headers in Details, as in Explorer. Arrow keys follow the on-screen order, including folded groups.
 - **Cloud drives in the sidebar**: iCloud Drive and every provider under `~/Library/CloudStorage` (OneDrive, each Google Drive account, Dropbox...) get their own entry under Gallery.

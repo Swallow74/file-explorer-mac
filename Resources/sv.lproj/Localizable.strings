@@ -40,6 +40,7 @@
 "Forward (Alt+Right)" = "Framåt (Alt+→)";
 "Up to %@ (Alt+Up)" = "Upp till %@ (Alt+↑)";
 "Refresh (F5)" = "Uppdatera (F5)";
+"History" = "Historik";
 "Home" = "Hem";
 "Path" = "Sökväg";
 "Click to type the path (Ctrl+L)" = "Klicka för att skriva sökvägen (Ctrl+L)";

@@ -153,6 +153,7 @@ struct CaptionButton: View {
 struct NavBar: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
+    @State private var frames: [String: CGRect] = [:]
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -165,16 +166,24 @@ struct NavBar: View {
                 ex.forward()
             } content: { Glyph(icon: .forward, size: 16, color: Win.text) }
 
+            // Explorer's ⌄ between forward and up: the whole navigation history.
+            WinButton(id: "nav.history", tooltip: tr("History"),
+                      enabled: ex.tab.history.count > 1, padding: 9, height: 34) {
+                menus.show(id: "nav.history", anchor: frames["nav.history"] ?? .zero,
+                           entries: historyMenu(), width: 300)
+            } content: { Glyph(icon: .chevronDown, size: 14, color: Win.text, weight: 1.3) }
+
             WinButton(tooltip: tr("Up to %@ (Alt+Up)", upTitle), enabled: ex.canGoUp, padding: 9, height: 34) {
                 ex.up()
             } content: { Glyph(icon: .up, size: 16, color: Win.text) }
 
+            AddressBar(ex: ex, menus: menus)
+
+            // Refresh lives after the address bar, not with the arrows, as in Explorer.
             WinButton(tooltip: tr("Refresh (F5)"), padding: 9, height: 34) {
                 ex.reload()
             } content: { Glyph(icon: .refresh, size: 16, color: Win.text) }
-                .padding(.trailing, 6)
-
-            AddressBar(ex: ex, menus: menus)
+                .padding(.leading, 6)
 
             SearchBox(ex: ex)
                 .frame(minWidth: 140, idealWidth: 260, maxWidth: 260)
@@ -183,6 +192,16 @@ struct NavBar: View {
         .padding(.horizontal, 8)
         .frame(height: Win.M.navBarHeight)
         .background(Win.chrome)
+        .onPreferenceChange(FrameKey.self) { frames.merge($0, uniquingKeysWith: { _, b in b }) }
+    }
+
+    private func historyMenu() -> [MenuEntry] {
+        let hist = ex.tab.history
+        return hist.enumerated().map { i, loc in
+            MenuEntry(title: loc.title, checked: i == ex.tab.index) {
+                ex.goHistory(i)
+            }
+        }
     }
 
     private var upTitle: String {

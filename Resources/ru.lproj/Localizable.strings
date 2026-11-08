@@ -40,6 +40,7 @@
 "Forward (Alt+Right)" = "Вперёд (Alt+→)";
 "Up to %@ (Alt+Up)" = "Вверх: %@ (Alt+↑)";
 "Refresh (F5)" = "Обновить (F5)";
+"History" = "Журнал";
 "Home" = "Главная";
 "Path" = "Путь";
 "Click to type the path (Ctrl+L)" = "Нажмите, чтобы ввести путь (Ctrl+L)";

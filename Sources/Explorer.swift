@@ -608,6 +608,13 @@ final class Explorer: ObservableObject {
         reload()
     }
 
+    /// Jump to a point in the tab's history, like Explorer's ⌄ dropdown.
+    func goHistory(_ i: Int) {
+        guard tab.history.indices.contains(i), i != tab.index else { return }
+        tab.index = i; tab.selection = []; tab.searching = false; tab.search = ""
+        reload()
+    }
+
     var isInsideArchive: Bool {
         if case .archive = tab.location { return true }
         return false

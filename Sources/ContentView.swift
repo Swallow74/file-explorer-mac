@@ -105,6 +105,14 @@ struct ContentView: View {
             case "menu:view":
                 menus.show(id: "view", anchor: CGRect(x: 400, y: 88, width: 90, height: 32),
                            entries: ContextMenus.background(ex), width: 250)
+            case "nav:history":
+                ex.go(to: Places.downloads)
+                ex.go(to: Places.documents)
+                let entries = ex.tab.history.enumerated().map { i, loc in
+                    MenuEntry(title: loc.title, checked: i == ex.tab.index) { ex.goHistory(i) }
+                }
+                menus.show(id: "nav.history", anchor: CGRect(x: 130, y: 74, width: 34, height: 34),
+                           entries: entries, width: 300)
             case "menu:context":
                 if let first = ex.tab.items.first { ex.select(first, extend: false, toggle: false) }
                 menus.show(id: "item", anchor: .zero, entries: ContextMenus.item(ex), width: 260,

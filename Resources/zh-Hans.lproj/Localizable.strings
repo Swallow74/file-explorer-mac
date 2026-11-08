@@ -40,6 +40,7 @@
 "Forward (Alt+Right)" = "前进 (Alt+→)";
 "Up to %@ (Alt+Up)" = "上移到 %@ (Alt+↑)";
 "Refresh (F5)" = "刷新 (F5)";
+"History" = "历史记录";
 "Home" = "主页";
 "Path" = "路径";
 "Click to type the path (Ctrl+L)" = "点击以输入路径 (Ctrl+L)";

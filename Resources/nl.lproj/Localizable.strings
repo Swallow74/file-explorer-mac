@@ -40,6 +40,7 @@
 "Forward (Alt+Right)" = "Vooruit (Alt+→)";
 "Up to %@ (Alt+Up)" = "Omhoog naar %@ (Alt+↑)";
 "Refresh (F5)" = "Vernieuwen (F5)";
+"History" = "Geschiedenis";
 "Home" = "Start";
 "Path" = "Pad";
 "Click to type the path (Ctrl+L)" = "Klik om het pad te typen (Ctrl+L)";

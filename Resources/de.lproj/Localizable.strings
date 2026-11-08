@@ -40,6 +40,7 @@
 "Forward (Alt+Right)" = "Vorwärts (Alt+→)";
 "Up to %@ (Alt+Up)" = "Hoch zu %@ (Alt+↑)";
 "Refresh (F5)" = "Aktualisieren (F5)";
+"History" = "Verlauf";
 "Home" = "Start";
 "Path" = "Pfad";
 "Click to type the path (Ctrl+L)" = "Klicken, um den Pfad einzugeben (Ctrl+L)";

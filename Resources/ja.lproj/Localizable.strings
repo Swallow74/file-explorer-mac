@@ -40,6 +40,7 @@
 "Forward (Alt+Right)" = "進む (Alt+→)";
 "Up to %@ (Alt+Up)" = "%@ へ上がる (Alt+↑)";
 "Refresh (F5)" = "更新 (F5)";
+"History" = "履歴";
 "Home" = "ホーム";
 "Path" = "パス";
 "Click to type the path (Ctrl+L)" = "クリックしてパスを入力 (Ctrl+L)";

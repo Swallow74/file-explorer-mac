@@ -40,6 +40,7 @@
 "Forward (Alt+Right)" = "İleri (Alt+→)";
 "Up to %@ (Alt+Up)" = "Yukarı: %@ (Alt+↑)";
 "Refresh (F5)" = "Yenile (F5)";
+"History" = "Geçmiş";
 "Home" = "Ana Sayfa";
 "Path" = "Yol";
 "Click to type the path (Ctrl+L)" = "Yolu yazmak için tıklayın (Ctrl+L)";
