@@ -488,3 +488,4 @@
 "Windows Batch File" = "Windows バッチファイル";
 "Windows PowerShell Script" = "Windows PowerShell スクリプト";
 "%1$@ free of %2$@" = "%2$@ 中 %1$@ 空き";
+"No network hosts found." = "ネットワークのホストが見つかりません。";

@@ -488,3 +488,4 @@
 "Windows Batch File" = "Archivo por lotes de Windows";
 "Windows PowerShell Script" = "Script de Windows PowerShell";
 "%1$@ free of %2$@" = "%1$@ libres de %2$@";
+"No network hosts found." = "No se encontraron equipos en la red.";

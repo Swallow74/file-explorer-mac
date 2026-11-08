@@ -398,6 +398,7 @@ enum Loader {
         return urls.compactMap { item(at: $0) }.filter { showHidden || !$0.isHidden }
     }
 
+    /// Every mounted volume, local disks and network shares alike.
     static func volumes() -> [FileItem] {
         let fm = FileManager.default
         var out: [FileItem] = []
@@ -407,6 +408,11 @@ enum Loader {
             if let i = item(at: u) { out.append(i) }
         }
         return out
+    }
+
+    /// Mounted network shares (SMB, AFP, NFS, WebDAV...).
+    static func networkVolumes() -> [FileItem] {
+        volumes().filter { (try? $0.url.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal == false }
     }
 
     /// Windows-style natural sort: folders first, then numeric-aware name comparison.

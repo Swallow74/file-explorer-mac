@@ -93,6 +93,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>File Explorer needs access to show the contents of your Downloads folder.</string>
     <key>NSRemovableVolumesUsageDescription</key>
     <string>File Explorer needs access to show the contents of connected drives.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>File Explorer looks for computers and shared folders on your network.</string>
+    <key>NSBonjourServices</key>
+    <array><string>_smb._tcp</string><string>_afpovertcp._tcp</string></array>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>File Explorer needs access to show photos in the Gallery.</string>
 </dict>

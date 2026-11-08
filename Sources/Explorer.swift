@@ -8,10 +8,19 @@ enum Location: Hashable {
     case gallery
     case thisPC
     case network
+    /// One network host (key from `NetHost.key`): the shares it offers.
+    case networkHost(String)
     case folder(URL)
     case recycleBin
     /// Browsing inside an archive: the archive file, and the path within it.
     case archive(URL, String)
+
+    var isNetworkPage: Bool {
+        switch self {
+        case .network, .networkHost: return true
+        default: return false
+        }
+    }
 
     var url: URL? {
         switch self {
@@ -31,6 +40,7 @@ enum Location: Hashable {
         case .gallery: return "Gallery"
         case .thisPC: return "This PC"
         case .network: return "Network"
+        case .networkHost(let key): return "Network/" + key
         case .recycleBin: return "Recycle Bin"
         default: return title
         }
@@ -42,6 +52,7 @@ enum Location: Hashable {
         case .gallery: return tr("Gallery")
         case .thisPC: return tr("This PC")
         case .network: return tr("Network")
+        case .networkHost(let key): return NetworkHosts.shared.name(forKey: key)
         case .recycleBin: return tr("Recycle Bin")
         case .folder(let u): return Places.displayName(for: u)
         case .archive(let archive, let inner):
@@ -55,7 +66,7 @@ enum Location: Hashable {
         case .home: return .home
         case .gallery: return .gallery
         case .thisPC: return .thisPC
-        case .network: return .network
+        case .network, .networkHost: return .network
         case .recycleBin: return .recycleBin
         case .folder(let u): return Places.icon(for: u)
         case .archive: return .compress
@@ -390,8 +401,8 @@ final class Explorer: ObservableObject {
         case .gallery:
             items = Loader.contents(of: Places.pictures, showHidden: prefs.showHidden)
                 .filter { $0.isDirectory || $0.kind == .image || $0.kind == .video }
-        case .network:
-            items = Loader.contents(of: URL(fileURLWithPath: "/Volumes"), showHidden: prefs.showHidden)
+        case .network, .networkHost:
+            items = Loader.networkVolumes()
         case .recycleBin:
             items = Loader.contents(of: Places.trash, showHidden: prefs.showHidden)
         case .folder(let url):
@@ -589,6 +600,7 @@ final class Explorer: ObservableObject {
         case .folder(let url):
             if url.path == "/" { go(to: .thisPC) }
             else { go(to: url.deletingLastPathComponent()) }
+        case .networkHost: go(to: .network)
         case .gallery, .network, .recycleBin: go(to: .home)
         case .thisPC: go(to: .home)
         case .home: NSSound.beep()
@@ -1242,6 +1254,9 @@ final class Explorer: ObservableObject {
         case .thisPC: return [Crumb(title: tr("This PC"), location: .thisPC, icon: .thisPC)]
         case .gallery: return [Crumb(title: tr("Gallery"), location: .gallery, icon: .gallery)]
         case .network: return [Crumb(title: tr("Network"), location: .network, icon: .network)]
+        case .networkHost:
+            return [Crumb(title: tr("Network"), location: .network, icon: .network),
+                    Crumb(title: tab.location.title, location: tab.location, icon: .network)]
         case .recycleBin: return [Crumb(title: tr("Recycle Bin"), location: .recycleBin, icon: .recycleBin)]
         case .archive(let archive, let inner):
             var crumbs = folderCrumbs(archive.deletingLastPathComponent())

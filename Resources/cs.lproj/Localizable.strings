@@ -488,3 +488,4 @@
 "Windows Batch File" = "Dávkový soubor Windows";
 "Windows PowerShell Script" = "Skript Windows PowerShell";
 "%1$@ free of %2$@" = "%1$@ volných z %2$@";
+"No network hosts found." = "Nenalezeni žádní hostitelé v síti.";

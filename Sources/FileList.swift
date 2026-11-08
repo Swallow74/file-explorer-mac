@@ -121,6 +121,8 @@ struct FileArea: View {
             Win.content
             if case .home = ex.tab.location, !ex.tab.searching {
                 HomeView(ex: ex, menus: menus)
+            } else if ex.tab.location.isNetworkPage, !ex.tab.searching {
+                NetworkView(ex: ex)
             } else if case .thisPC = ex.tab.location, !ex.tab.searching, !ex.tab.items.isEmpty {
                 ThisPCView(ex: ex, menus: menus)
             } else if ex.tab.items.isEmpty {

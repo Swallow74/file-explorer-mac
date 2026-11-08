@@ -105,7 +105,7 @@ struct NavPane: View {
             let spacer = (p.id == "desktop") || (p.id == "thispc")
             out.append(NavNode(id: p.id, title: p.title, icon: p.icon, accent: p.accent,
                                location: loc, url: p.url, level: 0,
-                               expandable: p.special != .home, pinned: p.special == nil && !p.id.hasPrefix("cloud:"),
+                               expandable: p.special != .home && p.special != .network, pinned: p.special == nil && !p.id.hasPrefix("cloud:"),
                                spacerAbove: spacer && i > 0))
             if ex.navExpanded.contains(p.id) {
                 if p.special == .thisPC {

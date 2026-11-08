@@ -61,7 +61,9 @@ enum Workspaces {
         case "Gallery": return .gallery
         case "Network": return .network
         case "Recycle Bin": return .recycleBin
-        default: return .folder(URL(fileURLWithPath: path))
+        default:
+            if path.hasPrefix("Network/") { return .networkHost(String(path.dropFirst(8))) }
+            return .folder(URL(fileURLWithPath: path))
         }
     }
 

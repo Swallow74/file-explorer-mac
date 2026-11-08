@@ -488,3 +488,4 @@
 "Windows Batch File" = "Fichier de commandes Windows";
 "Windows PowerShell Script" = "Script Windows PowerShell";
 "%1$@ free of %2$@" = "%1$@ libres sur %2$@";
+"No network hosts found." = "Aucun hôte réseau trouvé.";

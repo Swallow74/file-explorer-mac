@@ -488,3 +488,4 @@
 "Windows Batch File" = "Windows-batchbestand";
 "Windows PowerShell Script" = "Windows PowerShell-script";
 "%1$@ free of %2$@" = "%1$@ vrij van %2$@";
+"No network hosts found." = "Geen netwerkhosts gevonden.";

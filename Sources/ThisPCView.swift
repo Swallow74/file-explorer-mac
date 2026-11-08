@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// Used and total bytes of the volume mounted at `url`, nil when unreadable or
-/// not a local disk (network shares report unreliable figures, e.g. a NAS
-/// spanning several disks).
+/// Free and total bytes of the volume mounted at `url`, nil when unreadable.
 enum VolumeSpace {
     static func of(_ url: URL) -> (free: Int64, total: Int64)? {
-        let keys: Set<URLResourceKey> = [.volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey, .volumeIsLocalKey]
-        guard let v = try? url.resourceValues(forKeys: keys), v.volumeIsLocal == true,
-              let total = v.volumeTotalCapacity, total > 0,
-              let free = v.volumeAvailableCapacityForImportantUsage else { return nil }
+        let keys: Set<URLResourceKey> = [.volumeTotalCapacityKey, .volumeAvailableCapacityKey,
+                                         .volumeAvailableCapacityForImportantUsageKey]
+        guard let v = try? url.resourceValues(forKeys: keys),
+              let total = v.volumeTotalCapacity, total > 0 else { return nil }
+        // Network shares report 0 for the "important usage" figure; fall back to the plain one.
+        var free = v.volumeAvailableCapacityForImportantUsage ?? 0
+        if free == 0 { free = Int64(v.volumeAvailableCapacity ?? 0) }
         return (free, Int64(total))
     }
 }

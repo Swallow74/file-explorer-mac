@@ -488,3 +488,4 @@
 "Windows Batch File" = "Пакетный файл Windows";
 "Windows PowerShell Script" = "Скрипт Windows PowerShell";
 "%1$@ free of %2$@" = "Свободно %1$@ из %2$@";
+"No network hosts found." = "Узлы сети не найдены.";
