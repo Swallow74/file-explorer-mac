@@ -237,6 +237,7 @@ final class NetworkHosts: ObservableObject {
 /// Network lists the hosts; opening one shows the shares it offers.
 struct NetworkView: View {
     @ObservedObject var ex: Explorer
+    @ObservedObject var menus: MenuController
     @ObservedObject private var net = NetworkHosts.shared
     private let tick = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
 
@@ -260,7 +261,7 @@ struct NetworkView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 240, maximum: 340), spacing: 4, alignment: .top)],
                               alignment: .leading, spacing: 4) {
-                        ForEach(hosts) { host in HostTile(ex: ex, host: host) }
+                        ForEach(hosts) { host in HostTile(ex: ex, menus: menus, host: host) }
                     }
                     .padding(12)
                     if !net.hiddenKeys.isEmpty {
@@ -282,6 +283,7 @@ struct NetworkView: View {
 
 struct HostTile: View {
     @ObservedObject var ex: Explorer
+    @ObservedObject var menus: MenuController
     let host: NetHost
     @State private var hovering = false
 
@@ -298,8 +300,13 @@ struct HostTile: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture { ex.go(to: .networkHost(host.key)) }
-        .contextMenu {
-            Button(tr("Don't show on Network")) { NetworkHosts.shared.hide(host.key) }
+        // The window's right-click router owns every press inside the
+        // content pane, so a SwiftUI .contextMenu here would never open:
+        // register with the router instead, like the file tiles do.
+        .onRightClick { point in
+            menus.show(id: "hostmenu:" + host.key, anchor: .zero, entries: [
+                MenuEntry(title: tr("Don't show on Network")) { NetworkHosts.shared.hide(host.key) }
+            ], width: 230, point: point)
         }
     }
 }

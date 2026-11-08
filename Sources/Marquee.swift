@@ -26,6 +26,9 @@ final class MarqueeController: ObservableObject {
     }
 
     private var zones: [ObjectIdentifier: Zone] = [:]
+    /// Which view last claimed each zone: when a newer view has claimed it,
+    /// an older one disappearing must not delete the zone still in use.
+    private var generations: [ObjectIdentifier: Int] = [:]
 
     /// The rectangle being dragged, in root coordinates.
     @Published private(set) var rect: CGRect?
@@ -43,6 +46,25 @@ final class MarqueeController: ObservableObject {
         zone.explorer = explorer
         zone.frame = frame
         zones[ObjectIdentifier(explorer)] = zone
+    }
+
+    /// Marks a zone registration as belonging to this view instance.
+    func claimZone(for explorer: Explorer) -> Int {
+        let key = ObjectIdentifier(explorer)
+        let gen = (generations[key] ?? 0) + 1
+        generations[key] = gen
+        return gen
+    }
+
+    /// The view that registered the zone went away (a folder closed, the
+    /// Network page now showing): the zone must go with it, or its stale
+    /// frame swallows every click on the page that replaced the list.
+    func releaseZone(for explorer: Explorer, generation: Int) {
+        let key = ObjectIdentifier(explorer)
+        guard generations[key] == generation else { return }
+        generations[key] = nil
+        zones.removeValue(forKey: key)
+        if owner == key { owner = nil; rect = nil; baseSelection = [] }
     }
 
     func setItems(_ items: [String: CGRect], for explorer: Explorer) {
@@ -135,16 +157,11 @@ final class MarqueeController: ObservableObject {
 
 extension View {
     /// Marks the scrollable region of a pane as somewhere a band can be drawn.
+    /// The zone lives exactly as long as the view that drew it: navigating
+    /// away (to the Network page, to a different view mode) must leave no
+    /// zone behind, or its old frame captures clicks meant for the new page.
     func marqueeZone(_ explorer: Explorer) -> some View {
-        background(GeometryReader { geo in
-            Color.clear
-                .onAppear {
-                    MarqueeController.shared.setZone(geo.frame(in: .named("root")), for: explorer)
-                }
-                .onChange(of: geo.frame(in: .named("root"))) { _, frame in
-                    MarqueeController.shared.setZone(frame, for: explorer)
-                }
-        })
+        background(MarqueeZoneReader(explorer: explorer))
     }
 
     /// Reports this item's position so the band knows what it is crossing.
@@ -153,6 +170,27 @@ extension View {
             Color.clear.preference(key: ItemFrameKey.self,
                                    value: [id: geo.frame(in: .named("root"))])
         })
+    }
+}
+
+private struct MarqueeZoneReader: View {
+    let explorer: Explorer
+    @State private var generation = 0
+
+    var body: some View {
+        GeometryReader { geo in
+            Color.clear
+                .onAppear {
+                    generation = MarqueeController.shared.claimZone(for: explorer)
+                    MarqueeController.shared.setZone(geo.frame(in: .named("root")), for: explorer)
+                }
+                .onChange(of: geo.frame(in: .named("root"))) { _, frame in
+                    MarqueeController.shared.setZone(frame, for: explorer)
+                }
+                .onDisappear {
+                    MarqueeController.shared.releaseZone(for: explorer, generation: generation)
+                }
+        }
     }
 }
 
