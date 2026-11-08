@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "%2$@ içinde %1$@ boş";
 "No network hosts found." = "Ağ ana bilgisayarı bulunamadı.";
 "Waiting for the network drive…" = "Ağ sürücüsü bekleniyor…";
+"Don't show on Network" = "Ağda gösterme";
+"Show hidden computers" = "Gizli bilgisayarları göster";

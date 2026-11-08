@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "%1$@ vrij van %2$@";
 "No network hosts found." = "Geen netwerkhosts gevonden.";
 "Waiting for the network drive…" = "Wachten op het netwerkstation…";
+"Don't show on Network" = "Niet op netwerk weergeven";
+"Show hidden computers" = "Verborgen computers weergeven";

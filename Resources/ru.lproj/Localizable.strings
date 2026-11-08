@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "Свободно %1$@ из %2$@";
 "No network hosts found." = "Узлы сети не найдены.";
 "Waiting for the network drive…" = "Ожидание сетевого диска…";
+"Don't show on Network" = "Не показывать в сети";
+"Show hidden computers" = "Показать скрытые компьютеры";

@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "%1$@ libres sur %2$@";
 "No network hosts found." = "Aucun hôte réseau trouvé.";
 "Waiting for the network drive…" = "En attente du lecteur réseau…";
+"Don't show on Network" = "Ne pas afficher sur le réseau";
+"Show hidden computers" = "Afficher les ordinateurs masqués";

@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "%1$@ ledigt av %2$@";
 "No network hosts found." = "Inga nätverksvärdar hittades.";
 "Waiting for the network drive…" = "Väntar på den nätverksenheten…";
+"Don't show on Network" = "Visa inte i nätverket";
+"Show hidden computers" = "Visa dolda datorer";

@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "可用 %1$@，共 %2$@";
 "No network hosts found." = "未找到网络主机。";
 "Waiting for the network drive…" = "正在等待网络驱动器…";
+"Don't show on Network" = "不在网络中显示";
+"Show hidden computers" = "显示隐藏的电脑";

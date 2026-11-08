@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "%2$@ 中 %1$@ 空き";
 "No network hosts found." = "ネットワークのホストが見つかりません。";
 "Waiting for the network drive…" = "ネットワークドライブを待っています…";
+"Don't show on Network" = "ネットワークに表示しない";
+"Show hidden computers" = "隠しているコンピューターを表示";

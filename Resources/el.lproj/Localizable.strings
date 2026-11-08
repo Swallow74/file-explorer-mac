@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "%1$@ ελεύθερα από %2$@";
 "No network hosts found." = "Δεν βρέθηκαν υπολογιστές δικτύου.";
 "Waiting for the network drive…" = "Αναμονή για τη δικτυακή μονάδα…";
+"Don't show on Network" = "Να μην εμφανίζεται στο δίκτυο";
+"Show hidden computers" = "Εμφάνιση κρυφών υπολογιστών";

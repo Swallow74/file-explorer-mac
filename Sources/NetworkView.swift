@@ -185,6 +185,19 @@ final class NetworkHosts: ObservableObject {
         }
     }
 
+    /// Computers the user chose to keep out of the Network page
+    /// ("Don't show on Network"), by host key.
+    @Published private(set) var hiddenKeys: Set<String> =
+        Set(UserDefaults.standard.stringArray(forKey: "NetHiddenHosts") ?? [])
+    func hide(_ key: String) {
+        hiddenKeys.insert(key)
+        UserDefaults.standard.set(Array(hiddenKeys), forKey: "NetHiddenHosts")
+    }
+    func showAllHidden() {
+        hiddenKeys = []
+        UserDefaults.standard.set([String](), forKey: "NetHiddenHosts")
+    }
+
     /// Every host we know about: the ones with a mounted share, the saved
     /// server bookmarks and whatever Bonjour currently sees.
     func hosts() -> [NetHost] {
@@ -215,6 +228,7 @@ final class NetworkHosts: ObservableObject {
             map[key] = NetHost(key: key, name: name,
                                address: name.replacingOccurrences(of: " ", with: "-") + ".local")
         }
+        for k in hiddenKeys { map.removeValue(forKey: k) }
         known = map
         return map.values.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
@@ -243,11 +257,19 @@ struct NetworkView: View {
                     .font(Win.body(12)).foregroundStyle(Win.textTertiary)
                     .padding(.horizontal, 12).padding(.top, 14)
             } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240, maximum: 340), spacing: 4, alignment: .top)],
-                          alignment: .leading, spacing: 4) {
-                    ForEach(hosts) { host in HostTile(ex: ex, host: host) }
+                VStack(alignment: .leading, spacing: 2) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 240, maximum: 340), spacing: 4, alignment: .top)],
+                              alignment: .leading, spacing: 4) {
+                        ForEach(hosts) { host in HostTile(ex: ex, host: host) }
+                    }
+                    .padding(12)
+                    if !net.hiddenKeys.isEmpty {
+                        Button(tr("Show hidden computers")) { net.showAllHidden() }
+                            .buttonStyle(.plain)
+                            .font(Win.body(12)).foregroundStyle(Win.accent)
+                            .padding(.horizontal, 14).padding(.bottom, 10)
+                    }
                 }
-                .padding(12)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -276,6 +298,9 @@ struct HostTile: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture { ex.go(to: .networkHost(host.key)) }
+        .contextMenu {
+            Button(tr("Don't show on Network")) { NetworkHosts.shared.hide(host.key) }
+        }
     }
 }
 

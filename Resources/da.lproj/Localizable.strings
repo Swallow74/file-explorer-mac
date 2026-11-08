@@ -490,3 +490,5 @@
 "%1$@ free of %2$@" = "%1$@ ledigt af %2$@";
 "No network hosts found." = "Ingen netværksværter fundet.";
 "Waiting for the network drive…" = "Venter på netværksdrevet…";
+"Don't show on Network" = "Vis ikke på netværk";
+"Show hidden computers" = "Vis skjulte computere";

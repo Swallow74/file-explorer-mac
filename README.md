@@ -77,7 +77,7 @@ Everything below is optional. Turn a feature off and the app is still the Explor
 
 **Workspaces.** Save the tabs open in each pane, the split and the view mode under a name, and restore them later.
 
-**Network shares** (`Ctrl+K`). Connect to SMB, AFP, NFS, FTP and WebDAV, with recent servers remembered. macOS owns the sign-in, so no password is ever typed into File Explorer. The **Network** page also lists the machines found on the local network — Bonjour announcements plus a pass on the connected subnets — each opening into its shared folders; the Mac itself is never listed. Opening a sleeping or slow server shows a "waiting for the server" card while the listing runs in the background, so the window keeps responding. SFTP and S3 are not supported, because macOS cannot mount them without a third-party filesystem.
+**Network shares** (`Ctrl+K`). Connect to SMB, AFP, NFS, FTP and WebDAV, with recent servers remembered. macOS owns the sign-in, so no password is ever typed into File Explorer. The **Network** page also lists the machines found on the local network — Bonjour announcements plus a pass on the connected subnets — each opening into its shared folders; the Mac itself is never listed, and any computer can be dismissed with right-click > *Don't show on Network*. Opening a sleeping or slow server shows a "waiting for the server" card while the listing runs in the background, so the window keeps responding. SFTP and S3 are not supported, because macOS cannot mount them without a third-party filesystem.
 
 **Commands.** Your own scripts in the context menu, with the selection in the environment (`$FE_SELECTION`, `$FE_NAMES`, `$FE_FIRST`, `$FE_DIR`, `$FE_COUNT`). Managed from Settings, stored in `~/Library/Application Support/File Explorer/commands.json`. Deliberately scripts rather than loadable native code: a plugin that can crash or compromise the app is not a feature.
 
@@ -346,6 +346,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Network page** with the machines the Mac finds on its own (Bonjour `_smb._tcp`/`_afpovertcp._tcp` plus an optional LAN scan), mounted shares and saved servers; tiles open into the shares, mounting through macOS without the Finder.
 - **This PC keeps only local drives**; network volumes live under Network, as in Explorer.
 - **Background listing**: opening a remote folder never blocks the UI; the wait card covers it until the items arrive.
+- **Hide a computer**: right-click a Network tile and choose *Don't show on Network*; the link under the list (*Show hidden computers*) brings hidden ones back.
 
 **Updates and distribution**
 - **Update notification**: the app checks the GitHub Releases of the fork at launch (at most once a day) and from the app menu, and lets you skip a version.
