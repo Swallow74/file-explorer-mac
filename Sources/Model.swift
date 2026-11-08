@@ -399,11 +399,17 @@ enum Loader {
     }
 
     /// Mounted local volumes. Network shares are listed under Network only.
+    ///
+    /// The mount-table pass asks ONLY for `volumeIsLocalKey`: fetching real
+    /// attributes (dates, sizes) here would wake every mounted network
+    /// volume — a sleeping NAS blocks the whole call for minutes. The detail
+    /// values are then read from local volumes only, which always answer.
     static func volumes() -> [FileItem] {
         let fm = FileManager.default
         var out: [FileItem] = []
         if let root = item(at: URL(fileURLWithPath: "/")) { out.append(root) }
-        let mounted = fm.mountedVolumeURLs(includingResourceValuesForKeys: keys, options: [.skipHiddenVolumes]) ?? []
+        let mounted = fm.mountedVolumeURLs(includingResourceValuesForKeys: [.volumeIsLocalKey],
+                                           options: [.skipHiddenVolumes]) ?? []
         for u in mounted where u.path != "/" {
             if (try? u.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal == false { continue }
             if let i = item(at: u) { out.append(i) }
