@@ -149,8 +149,7 @@ struct QuickTile: View {
         .dropHighlight(dropTargeted)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture(count: 2) { if let u = place.url { ex.go(to: u) } }
-        .onTapGesture(count: 1) { if let u = place.url { ex.go(to: u) } }
+        .onTapGesture { if let u = place.url { ex.go(to: u) } }
         .onDrop(of: [.fileURL], isTargeted: place.url != nil ? $dropTargeted : nil) { providers in
             guard let u = place.url else { return false }
             dropTargeted = false
@@ -288,8 +287,7 @@ struct RecentRow: View {
         .background(WinRR(radius: 4).fill(hovering ? Win.subtleHover : .clear).padding(.horizontal, 8))
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture(count: 2) { ex.open(item) }
-        .onTapGesture(count: 1) { ex.open(item) }
+        .onTapGesture { ex.open(item) }
         .onRightClick { p in
             menus.show(id: "recent", anchor: .zero, entries: [
                 MenuEntry(title: tr("Open"), icon: .openWith) { ex.open(item) },
