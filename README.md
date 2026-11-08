@@ -77,7 +77,7 @@ Everything below is optional. Turn a feature off and the app is still the Explor
 
 **Workspaces.** Save the tabs open in each pane, the split and the view mode under a name, and restore them later.
 
-**Network shares** (`Ctrl+K`). Connect to SMB, AFP, NFS, FTP and WebDAV, with recent servers remembered. macOS owns the sign-in, so no password is ever typed into File Explorer. SFTP and S3 are not supported, because macOS cannot mount them without a third-party filesystem.
+**Network shares** (`Ctrl+K`). Connect to SMB, AFP, NFS, FTP and WebDAV, with recent servers remembered. macOS owns the sign-in, so no password is ever typed into File Explorer. The **Network** page also lists the machines found on the local network — Bonjour announcements plus a pass on the connected subnets — each opening into its shared folders; the Mac itself is never listed. Opening a sleeping or slow server shows a "waiting for the server" card while the listing runs in the background, so the window keeps responding. SFTP and S3 are not supported, because macOS cannot mount them without a third-party filesystem.
 
 **Commands.** Your own scripts in the context menu, with the selection in the environment (`$FE_SELECTION`, `$FE_NAMES`, `$FE_FIRST`, `$FE_DIR`, `$FE_COUNT`). Managed from Settings, stored in `~/Library/Application Support/File Explorer/commands.json`. Deliberately scripts rather than loadable native code: a plugin that can crash or compromise the app is not a feature.
 
@@ -254,6 +254,7 @@ Sources/
   Archives.swift       Reading and extracting zip and tar archives
   BatchRename.swift    The rename rule and its dialog
   CompareSync.swift    Folder comparison and one-way sync
+  NetworkView.swift    Bonjour and LAN host discovery, share browsing
   RemoteServers.swift  Network shares, mounted by macOS itself
   Workspaces.swift     Saved pane and tab layouts
   Shelf.swift          The staging area
@@ -304,7 +305,7 @@ Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_LANG=<code
 
 - **Extensions are shown by default.** Windows hides known ones. The toggle is in `View > Show > File name extensions`.
 - **The Recycle Bin is the macOS Trash**, so deleted items land where the rest of the system expects them.
-- **Drives.** The boot volume is labelled `Local Disk (C:)`, and other mounted volumes appear under This PC by their own names.
+- **Drives.** The boot volume is labelled `Local Disk (C:)`, other locally mounted volumes appear under This PC by their own names, and network-mounted volumes appear only under Network.
 - **"Account disconnected"** reports what is actually on the Mac. It reads *iCloud Drive* or *OneDrive* when either is present, and *Account disconnected* when neither is.
 - Archive browsing is read-only. Dropping files into a zip is not supported.
 - **Undo history is per pane.** Each pane undoes its own operations; Windows keeps one history per window.
@@ -340,6 +341,11 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - Rubber-band selection no longer swallows clicks on open menus, and picks the right window when two Explorers are open.
 - Inline rename commits on focus loss; case-only renames work on case-insensitive APFS; shortcut re-mapping detects real conflicts.
 - Column, pane-divider and details-pane resize track the pointer 1:1 (they used to compound).
+
+**Network browsing**
+- **Network page** with the machines the Mac finds on its own (Bonjour `_smb._tcp`/`_afpovertcp._tcp` plus an optional LAN scan), mounted shares and saved servers; tiles open into the shares, mounting through macOS without the Finder.
+- **This PC keeps only local drives**; network volumes live under Network, as in Explorer.
+- **Background listing**: opening a remote folder never blocks the UI; the wait card covers it until the items arrive.
 
 **Updates and distribution**
 - **Update notification**: the app checks the GitHub Releases of the fork at launch (at most once a day) and from the app menu, and lets you skip a version.
