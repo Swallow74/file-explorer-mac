@@ -326,6 +326,7 @@ struct WinField: NSViewRepresentable {
                     editor.selectAll(nil)
                 }
             }
+            context.coordinator.watchClicksOutside(f)
         }
         return f
     }
@@ -341,7 +342,35 @@ struct WinField: NSViewRepresentable {
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: WinField
         private var resolved = false
+        private var clickGuard: Any?
         init(_ p: WinField) { parent = p }
+
+        deinit {
+            if let m = clickGuard { NSEvent.removeMonitor(m) }
+        }
+
+        /// A click anywhere outside a rename field ends the edit: SwiftUI's
+        /// own views never claim first responder, so the AppKit blur that
+        /// commits the name does not fire on its own. Every plain click on
+        /// the listing, the toolbar, the other pane or empty space stands
+        /// the field down; the blur path commits, as Explorer does.
+        func watchClicksOutside(_ f: NSTextField) {
+            guard parent.commitOnBlur, clickGuard == nil else { return }
+            clickGuard = NSEvent.addLocalMonitorForEvents(
+                matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self, weak f] event in
+                guard let self, let f, let w = f.window else { return event }
+                let hit = event.window === w
+                    ? w.contentView?.hitTest(event.locationInWindow)
+                    : nil
+                if hit === f || (hit?.isDescendant(of: f) ?? false) { return event }
+                w.makeFirstResponder(nil)
+                return event
+            }
+        }
+
+        private func dropClickGuard() {
+            if let m = clickGuard { NSEvent.removeMonitor(m); clickGuard = nil }
+        }
 
         func controlTextDidChange(_ obj: Notification) {
             guard let f = obj.object as? NSTextField else { return }
@@ -349,6 +378,7 @@ struct WinField: NSViewRepresentable {
         }
 
         func controlTextDidEndEditing(_ obj: Notification) {
+            dropClickGuard()
             // Blur commits a rename, as Explorer does. Enter and Esc have
             // already resolved the edit; without the guard they would commit
             // a second time when the field tears down.

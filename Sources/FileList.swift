@@ -322,11 +322,14 @@ enum ItemClick {
     /// an in-place rename, the way Explorer and the Finder do it. A click with
     /// a modifier extends or toggles the selection instead, a click on one item
     /// of a multi-selection just collapses it, and a double-click still opens.
+    /// `freshlyCommitted` marks the click that merely closed a rename from the
+    /// outside; reopening the edit on the spot is not what it means.
     static func startsRename(modifiers: NSEvent.ModifierFlags,
                              isSoleSelection: Bool,
                              editing: String?,
-                             menuOpen: Bool) -> Bool {
-        guard isSoleSelection, editing == nil, !menuOpen else { return false }
+                             menuOpen: Bool,
+                             freshlyCommitted: Bool = false) -> Bool {
+        guard isSoleSelection, editing == nil, !menuOpen, !freshlyCommitted else { return false }
         return modifiers.intersection(selectionModifiers).isEmpty
     }
 }
@@ -350,7 +353,8 @@ struct ItemInteraction: ViewModifier {
                 if ItemClick.startsRename(modifiers: f,
                                           isSoleSelection: ex.tab.selection == [item.id],
                                           editing: ex.tab.editing,
-                                          menuOpen: MenuController.anyOpen) {
+                                          menuOpen: MenuController.anyOpen,
+                                          freshlyCommitted: ex.freshRenameCommit) {
                     ex.beginRename(item)
                 } else {
                     ex.select(item, extend: f.contains(.shift),

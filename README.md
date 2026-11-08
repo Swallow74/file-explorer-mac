@@ -130,6 +130,7 @@ Every shortcut works with **`Ctrl`** (as on Windows) *and* **`Cmd`** (as Mac mus
 | `Ctrl+Z` / `Ctrl+Y` | Undo, redo |
 | `F2` | Rename |
 | Click a selected name again | Rename in place |
+| Click away while renaming | Apply the new name, like Windows |
 | `Delete` | Recycle Bin |
 | `Shift+Delete` | Delete permanently |
 | `Ctrl+Shift+N` | New folder |
@@ -295,7 +296,7 @@ Two decisions worth calling out:
 WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 ```
 
-Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **164 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
+Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **165 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
 
 GitHub Actions runs the build, the signature check and this suite on every push (`.github/workflows/build.yml`), and uploads the universal app as a workflow artifact.
 
@@ -340,7 +341,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Quick Look**: `Space` previews the selected files like in the Finder (`Space` or `Esc` closes, arrows move along the selection); `Ctrl+Space` toggles the selection.
 - `Shift`/`Ctrl`/`Cmd`+click uses the modifiers held **at press time**, so a quick click-and-release no longer collapses a multi-selection.
 - Rubber-band selection no longer swallows clicks on open menus, and picks the right window when two Explorers are open.
-- Inline rename commits on focus loss; case-only renames work on case-insensitive APFS; shortcut re-mapping detects real conflicts.
+- Inline rename commits on focus loss — a click anywhere outside the field (another file, empty space, the toolbar, the other pane) finishes the name without Esc, and that same click never reopens the edit; case-only renames work on case-insensitive APFS; shortcut re-mapping detects real conflicts.
 - Column, pane-divider and details-pane resize track the pointer 1:1 (they used to compound).
 
 **Network browsing**

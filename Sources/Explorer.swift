@@ -1013,8 +1013,18 @@ final class Explorer: ObservableObject {
         tab = t
     }
 
+    /// When an inline rename last resolved, in wall-clock time. The outside
+    /// click that commits it (the blur guard in `WinField`) lands on this
+    /// listing a beat later; it must not read as a fresh second click on the
+    /// sole selection and reopen the very rename it just closed.
+    private(set) var lastRenameCommit = Date.distantPast
+    var freshRenameCommit: Bool {
+        Date().timeIntervalSince(lastRenameCommit) < 0.4
+    }
+
     func commitRename(_ item: FileItem, to newName: String) {
         tab.editing = nil
+        lastRenameCommit = Date()
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != item.name else { return }
         var final = trimmed

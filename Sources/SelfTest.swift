@@ -118,6 +118,10 @@ enum SelfTest {
         check("a click with a context menu open does not rename",
               !ItemClick.startsRename(modifiers: [], isSoleSelection: true,
                                       editing: nil, menuOpen: true))
+        check("the click that commits a rename from the outside does not reopen it",
+              !ItemClick.startsRename(modifiers: [], isSoleSelection: true,
+                                      editing: nil, menuOpen: false,
+                                      freshlyCommitted: true))
         if let press = NSEvent.mouseEvent(with: .leftMouseDown, location: .zero,
                                           modifierFlags: .shift, timestamp: 0,
                                           windowNumber: 0, context: nil, eventNumber: 0,
