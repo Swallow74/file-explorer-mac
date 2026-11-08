@@ -171,7 +171,7 @@ enum Ops {
     /// would offer "Eject" on.
     static func isEjectable(_ url: URL) -> Bool {
         let p = url.standardizedFileURL.path
-        return p != "/" && Loader.volumes().contains { $0.url.standardizedFileURL.path == p }
+        return p != "/" && RemoteServers.mountedVolumes().contains { $0.standardizedFileURL.path == p }
     }
 
     /// Windows-style conflict naming: "name - Copy", "name - Copy (2)", ...
@@ -402,7 +402,7 @@ final class Explorer: ObservableObject {
             items = Loader.contents(of: Places.pictures, showHidden: prefs.showHidden)
                 .filter { $0.isDirectory || $0.kind == .image || $0.kind == .video }
         case .network, .networkHost:
-            items = Loader.networkVolumes()
+            items = []  // NetworkHosts gathers its own data off the main thread
         case .recycleBin:
             items = Loader.contents(of: Places.trash, showHidden: prefs.showHidden)
         case .folder(let url):

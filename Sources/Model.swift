@@ -398,21 +398,17 @@ enum Loader {
         return urls.compactMap { item(at: $0) }.filter { showHidden || !$0.isHidden }
     }
 
-    /// Every mounted volume, local disks and network shares alike.
+    /// Mounted local volumes. Network shares are listed under Network only.
     static func volumes() -> [FileItem] {
         let fm = FileManager.default
         var out: [FileItem] = []
         if let root = item(at: URL(fileURLWithPath: "/")) { out.append(root) }
         let mounted = fm.mountedVolumeURLs(includingResourceValuesForKeys: keys, options: [.skipHiddenVolumes]) ?? []
         for u in mounted where u.path != "/" {
+            if (try? u.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal == false { continue }
             if let i = item(at: u) { out.append(i) }
         }
         return out
-    }
-
-    /// Mounted network shares (SMB, AFP, NFS, WebDAV...).
-    static func networkVolumes() -> [FileItem] {
-        volumes().filter { (try? $0.url.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal == false }
     }
 
     /// Windows-style natural sort: folders first, then numeric-aware name comparison.

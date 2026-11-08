@@ -67,6 +67,47 @@ final class NetworkHosts: ObservableObject {
     private var browsers: [NWBrowser] = []
     private var listing: Set<String> = []
     private var known: [String: NetHost] = [:]
+    @Published private(set) var mounts: [MountInfo] = []
+    @Published private(set) var scanned: [String: (name: String, ip: String)] = [:]
+    /// Background jobs in flight; the page shows a spinner while it is above zero.
+    @Published private(set) var busy = 0
+    private var lastScan = Date.distantPast
+
+    struct MountInfo {
+        let url: URL
+        let name: String
+        let mount: NetMount?
+    }
+
+    private func track(_ work: @escaping () -> Void, done: @escaping () -> Void) {
+        busy += 1
+        DispatchQueue.global(qos: .utility).async {
+            work()
+            DispatchQueue.main.async { done(); self.busy -= 1 }
+        }
+    }
+
+    /// Mounted network shares, read off the main thread: statfs on a sleeping NAS can block.
+    func refreshMounts() {
+        var result: [MountInfo] = []
+        track({
+            let urls = FileManager.default.mountedVolumeURLs(
+                includingResourceValuesForKeys: [.volumeIsLocalKey], options: [.skipHiddenVolumes]) ?? []
+            result = urls.filter { (try? $0.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal == false }
+                .map { MountInfo(url: $0, name: $0.lastPathComponent, mount: NetMount.of($0)) }
+        }, done: { self.mounts = result })
+    }
+
+    /// Looks for SMB servers on the local subnets (port 445) and asks each for
+    /// its NetBIOS name, the way Finder finds machines that never announce
+    /// themselves over Bonjour.
+    func scanLAN() {
+        guard Date().timeIntervalSince(lastScan) > 60,
+              ProcessInfo.processInfo.environment["WINEXP_NORECENTS"] == nil else { return }
+        lastScan = Date()
+        var found: [String: (name: String, ip: String)] = [:]
+        track({ found = LANScan.run() }, done: { self.scanned = found })
+    }
 
     func host(forKey key: String) -> NetHost? { known[key] }
     func name(forKey key: String) -> String { known[key]?.name ?? key }
@@ -96,13 +137,9 @@ final class NetworkHosts: ObservableObject {
     func listShares(of host: NetHost) {
         guard !listing.contains(host.key), shares[host.key] == nil else { return }
         listing.insert(host.key)
-        DispatchQueue.global(qos: .utility).async {
-            let names = Self.smbShares(address: host.address, user: host.user)
-            DispatchQueue.main.async {
-                self.listing.remove(host.key)
-                self.shares[host.key] = names
-            }
-        }
+        var names: [String] = []
+        track({ names = Self.smbShares(address: host.address, user: host.user) },
+              done: { self.listing.remove(host.key); self.shares[host.key] = names })
     }
 
     private static func smbShares(address: String, user: String?) -> [String] {
@@ -129,14 +166,14 @@ final class NetworkHosts: ObservableObject {
 
     /// Every host we know about: the ones with a mounted share, the saved
     /// server bookmarks and whatever Bonjour currently sees.
-    func hosts(mounted: [FileItem]) -> [NetHost] {
+    func hosts() -> [NetHost] {
         var map: [String: NetHost] = [:]
-        for item in mounted {
-            guard let m = NetMount.of(item.url) else {
+        for item in mounts {
+            guard let m = item.mount else {
                 // Not an //host/share mount (NFS, WebDAV...): a one-share host of its own.
                 let key = "vol:" + item.url.path
-                map[key] = NetHost(key: key, name: item.displayName, address: "",
-                                   mounts: [item.displayName.lowercased(): item.url])
+                map[key] = NetHost(key: key, name: item.name, address: "",
+                                   mounts: [item.name.lowercased(): item.url])
                 continue
             }
             let key = NetHost.key(for: m.address)
@@ -148,6 +185,10 @@ final class NetworkHosts: ObservableObject {
             guard let u = URL(string: b.address), let host = u.host, ["smb", "afp"].contains(u.scheme) else { continue }
             let key = NetHost.key(for: host)
             if map[key] == nil { map[key] = NetHost(key: key, name: NetHost.displayName(host), address: host, user: u.user) }
+        }
+        let knownAddresses = Set(map.values.map(\.address))
+        for (key, found) in scanned where map[key] == nil && !knownAddresses.contains(found.ip) {
+            map[key] = NetHost(key: key, name: found.name, address: found.ip)
         }
         for (key, name) in discovered where map[key] == nil && name != Host.current().localizedName {
             map[key] = NetHost(key: key, name: name,
@@ -165,7 +206,7 @@ struct NetworkView: View {
     private let tick = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        let hosts = net.hosts(mounted: ex.tab.items)
+        let hosts = net.hosts()
         ScrollView(.vertical) {
             if case .networkHost(let key) = ex.tab.location {
                 if let host = hosts.first(where: { $0.key == key }) {
@@ -188,8 +229,11 @@ struct NetworkView: View {
                 .padding(12)
             }
         }
-        .onAppear { net.start() }
-        .onReceive(tick) { _ in switch ex.tab.location { case .network, .networkHost: ex.reload(); default: break } }
+        .overlay(alignment: .topTrailing) {
+            if net.busy > 0 { ProgressView().controlSize(.small).padding(14) }
+        }
+        .onAppear { net.start(); net.refreshMounts(); net.scanLAN() }
+        .onReceive(tick) { _ in net.refreshMounts() }
     }
 }
 
@@ -249,6 +293,7 @@ struct ShareTile: View {
     let share: String       // empty: the host itself, share still to be chosen
     let mount: URL?
     @State private var hovering = false
+    @State private var mounting = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -256,6 +301,7 @@ struct ShareTile: View {
             Text(share.isEmpty ? host.name : share)
                 .font(Win.body(12)).foregroundStyle(Win.text).lineLimit(1)
             Spacer(minLength: 0)
+            if mounting { ProgressView().controlSize(.small) }
         }
         .padding(.horizontal, 10)
         .frame(height: 56)
@@ -269,7 +315,10 @@ struct ShareTile: View {
         if let mount { ex.go(to: mount); return }
         let who = host.user.map { ($0.addingPercentEncoding(withAllowedCharacters: .urlUserAllowed) ?? $0) + "@" } ?? ""
         let path = share.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? share
+        guard !mounting else { return }
+        mounting = true
         RemoteServers.connect("smb://\(who)\(host.address)/\(path)") { url in
+            mounting = false
             if let url { ex.go(to: url) }
         }
     }
@@ -278,3 +327,128 @@ struct ShareTile: View {
 extension String { func appendLine(_ p: String) throws {
     if let h = FileHandle(forWritingAtPath: p) { h.seekToEndOfFile(); h.write(data(using: .utf8)!); h.closeFile() }
     else { try write(toFile: p, atomically: true, encoding: .utf8) } } }
+
+/// Finds SMB servers on the directly connected IPv4 subnets.
+enum LANScan {
+    static func run() -> [String: (name: String, ip: String)] {
+        var own: Set<UInt32> = []
+        var targets: [UInt32] = []
+        var ifap: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifap) == 0, let first = ifap else { return [:] }
+        defer { freeifaddrs(ifap) }
+        var p: UnsafeMutablePointer<ifaddrs>? = first
+        while let i = p {
+            defer { p = i.pointee.ifa_next }
+            let name = String(cString: i.pointee.ifa_name)
+            let flags = Int32(i.pointee.ifa_flags)
+            guard name.hasPrefix("en"), flags & IFF_UP != 0, flags & IFF_LOOPBACK == 0,
+                  let a = i.pointee.ifa_addr, a.pointee.sa_family == sa_family_t(AF_INET),
+                  let m = i.pointee.ifa_netmask else { continue }
+            let ip = a.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { UInt32(bigEndian: $0.pointee.sin_addr.s_addr) }
+            let mask = m.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { UInt32(bigEndian: $0.pointee.sin_addr.s_addr) }
+            let private10 = ip >> 24 == 10, private192 = ip >> 16 == 0xC0A8, private172 = ip >> 20 == 0xAC1
+            guard private10 || private192 || private172 else { continue }
+            own.insert(ip)
+            // Never wider than the /24 around us: 254 probes, not thousands.
+            let effective = mask < 0xFFFFFF00 ? 0xFFFFFF00 : mask
+            let net = ip & effective
+            let count = ~effective
+            for host in 1..<count where net | host != ip { targets.append(net | host) }
+        }
+        var found: [String: (name: String, ip: String)] = [:]
+        let lock = NSLock()
+        let group = DispatchGroup()
+        for ip in Set(targets) where !own.contains(ip) {
+            DispatchQueue.global(qos: .utility).async(group: group) {
+                guard portOpen(ip, port: 445, timeoutMs: 700) else { return }
+                let text = dotted(ip)
+                let name = netbiosName(ip) ?? reverseName(ip) ?? text
+                lock.lock(); found[NetHost.key(for: name)] = (name, text); lock.unlock()
+            }
+        }
+        group.wait()
+        return found
+    }
+
+    private static func dotted(_ ip: UInt32) -> String {
+        "\(ip >> 24).\((ip >> 16) & 255).\((ip >> 8) & 255).\(ip & 255)"
+    }
+
+    private static func sockaddr(_ ip: UInt32, _ port: UInt16) -> sockaddr_in {
+        var a = sockaddr_in()
+        a.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        a.sin_family = sa_family_t(AF_INET)
+        a.sin_port = port.bigEndian
+        a.sin_addr.s_addr = ip.bigEndian
+        return a
+    }
+
+    private static func portOpen(_ ip: UInt32, port: UInt16, timeoutMs: Int32) -> Bool {
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+        var addr = sockaddr(ip, port)
+        let r = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: Darwin.sockaddr.self, capacity: 1) {
+                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        if r == 0 { return true }
+        guard errno == EINPROGRESS else { return false }
+        var pfd = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+        guard poll(&pfd, 1, timeoutMs) > 0 else { return false }
+        var err: Int32 = 0
+        var len = socklen_t(MemoryLayout<Int32>.size)
+        getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len)
+        return err == 0
+    }
+
+    /// NetBIOS node status request (UDP 137): the host answers with its names.
+    private static func netbiosName(_ ip: UInt32) -> String? {
+        let fd = socket(AF_INET, SOCK_DGRAM, 0)
+        guard fd >= 0 else { return nil }
+        defer { close(fd) }
+        var tv = timeval(tv_sec: 1, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        var q: [UInt8] = [0x13, 0x37, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0x20, 0x43, 0x4B]
+        q += [UInt8](repeating: 0x41, count: 30)
+        q += [0, 0, 0x21, 0, 1]
+        var addr = sockaddr(ip, 137)
+        let sent = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: Darwin.sockaddr.self, capacity: 1) {
+                sendto(fd, q, q.count, 0, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard sent == q.count else { return nil }
+        var buf = [UInt8](repeating: 0, count: 1024)
+        let n = recv(fd, &buf, buf.count, 0)
+        // Header 12 + echoed question 38 + answer header 12 (name pointer, type, class, ttl, length) + count.
+        guard n > 57 else { return nil }
+        let names = Int(buf[56])
+        var o = 57
+        for _ in 0..<names where o + 18 <= n {
+            let raw = buf[o..<(o + 15)]
+            let suffix = buf[o + 15], flags = UInt16(buf[o + 16]) << 8 | UInt16(buf[o + 17])
+            o += 18
+            if suffix == 0, flags & 0x8000 == 0 {   // unique workstation name
+                let name = String(decoding: raw, as: UTF8.self).trimmingCharacters(in: .whitespaces)
+                if !name.isEmpty { return name }
+            }
+        }
+        return nil
+    }
+
+    private static func reverseName(_ ip: UInt32) -> String? {
+        var addr = sockaddr(ip, 0)
+        var host = [CChar](repeating: 0, count: 256)
+        let r = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: Darwin.sockaddr.self, capacity: 1) {
+                getnameinfo($0, socklen_t(MemoryLayout<sockaddr_in>.size), &host, socklen_t(host.count), nil, 0, NI_NAMEREQD)
+            }
+        }
+        guard r == 0 else { return nil }
+        let name = String(cString: host)
+        return name.split(separator: ".").first.map(String.init)
+    }
+}

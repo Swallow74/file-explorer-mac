@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import NetFS
 
 // MARK: - Server bookmarks
 
@@ -51,6 +52,27 @@ enum RemoteServers {
         // during the sign-in wait would navigate the user to the wrong place,
         // and an already-mounted share never "appears" at all, so the timer
         // only ever ended in a false failure after 90 seconds.
+        // SMB, AFP and NFS mount in-process through NetFS, so Finder never pops
+        // a window open. The system still shows its own sign-in sheet when
+        // the keychain has no credentials. Anything else goes to the system.
+        if ["smb", "afp", "nfs"].contains(url.scheme ?? "") {
+            DispatchQueue.global(qos: .userInitiated).async {
+                let options = NSMutableDictionary()
+                options[kNAUIOptionKey as String] = kNAUIOptionAllowUI as String
+                var points: Unmanaged<CFArray>?
+                let status = NetFSMountURLSync(url as CFURL, nil, nil, nil, options, nil, &points)
+                let mounted = (points?.takeRetainedValue() as? [String])?.first.map { URL(fileURLWithPath: $0) }
+                DispatchQueue.main.async {
+                    // EEXIST: already mounted, which is as good as success.
+                    if status == 0 || status == EEXIST {
+                        completion(mounted ?? volumeMatching(url))
+                    } else {
+                        completion(nil)
+                    }
+                }
+            }
+            return
+        }
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
         NSWorkspace.shared.open(url, configuration: config, completionHandler: { _, error in
