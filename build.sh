@@ -81,7 +81,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
     <key>CFBundleVersion</key>           <string>$VERSION</string>
     <key>LSMinimumSystemVersion</key>    <string>14.0</string>
-    <key>FEUpdateRepo</key>              <string>${FE_UPDATE_REPO:-Swallow74/windows-explorer-mac}</string>
+    <key>FEUpdateRepo</key>              <string>${FE_UPDATE_REPO:-Swallow74/file-explorer-mac}</string>
     <key>NSHighResolutionCapable</key>   <true/>
     <key>NSQuitAlwaysKeepsWindows</key>  <false/>
     <key>NSSupportsAutomaticTermination</key><false/>

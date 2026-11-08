@@ -9,7 +9,7 @@ means: commit → push → **create a GitHub release**.
 
 1. **The version number comes from GitHub, never from local state.**
    Local tags go stale. Always run first:
-   `gh release list -R Swallow74/windows-explorer-mac -L 3`
+   `gh release list -R Swallow74/file-explorer-mac -L 3`
    and `git fetch --tags`. New version = latest published + 0.0.1 unless the
    user says otherwise (e.g. latest `1.4.6` → `1.4.7`). A published
    downgrade breaks the auto-updater for every user — never invent the number
@@ -20,9 +20,10 @@ means: commit → push → **create a GitHub release**.
    keychain), notarizes (`dev-notary` profile, a few minutes), staples, and
    zips to `build/FileExplorer-<version>-macOS-universal.zip`.
    **It does NOT publish** — it only prints the command. Publishing is:
-   `gh release create v<version> --title "File Explorer for Mac <version>" "build/FileExplorer-<version>-macOS-universal.zip"`
-   (the tag `v<version>` is created by that command; the title format above
-   is what earlier releases use).
+   `gh release create -R Swallow74/file-explorer-mac v<version> --title "File Explorer for Mac <version>" "build/FileExplorer-<version>-macOS-universal.zip"`
+   (always pass `-R`: an `upstream` remote exists, and without `-R` `gh`
+   resolves the wrong repo; the tag `v<version>` is created by that command;
+   the title format above is what earlier releases use).
 4. Kill dev instances before the user tests, and **never touch or "fix"
    `/Applications/File Explorer.app`** — it updates itself from step 3/4.
    Dev instances run as `.../build/File Explorer.app/Contents/MacOS/FileExplorer`

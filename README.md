@@ -11,8 +11,8 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
-[![Tests](https://img.shields.io/badge/tests-125%20passing-6CCB5F?style=flat-square)](#tests)
-[![Build](https://github.com/Swallow74/windows-explorer-mac/actions/workflows/build.yml/badge.svg)](https://github.com/Swallow74/windows-explorer-mac/actions/workflows/build.yml)
+[![Tests](https://img.shields.io/badge/tests-164%20passing-6CCB5F?style=flat-square)](#tests)
+[![Build](https://github.com/Swallow74/file-explorer-mac/actions/workflows/build.yml/badge.svg)](https://github.com/Swallow74/file-explorer-mac/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
 <img src="docs/demo.gif" width="900" alt="Browsing folders, switching view modes, the context menu, and changing theme and accent colour">
@@ -86,8 +86,8 @@ Everything below is optional. Turn a feature off and the app is still the Explor
 Requires the Swift 6 toolchain that ships with Xcode. The Command Line Tools alone are not enough: SwiftUI's `@State` and friends expand through the `SwiftUIMacros` plugin, which only ships inside a full Xcode. No Xcode project, no Node, no Homebrew.
 
 ```bash
-git clone https://github.com/gmazaratti/windows-explorer-mac.git
-cd windows-explorer-mac
+git clone https://github.com/Swallow74/file-explorer-mac.git
+cd file-explorer-mac
 ./build.sh
 open "build/File Explorer.app"
 ```

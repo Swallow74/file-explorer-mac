@@ -5,7 +5,7 @@ import AppKit
 enum Updater {
     /// Overridable from Info.plist (key FEUpdateRepo), e.g. for forks.
     static var repo: String {
-        Bundle.main.object(forInfoDictionaryKey: "FEUpdateRepo") as? String ?? "Swallow74/windows-explorer-mac"
+        Bundle.main.object(forInfoDictionaryKey: "FEUpdateRepo") as? String ?? "Swallow74/file-explorer-mac"
     }
     static var current: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
