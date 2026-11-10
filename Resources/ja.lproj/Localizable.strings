@@ -493,3 +493,10 @@
 "Waiting for the network drive…" = "ネットワークドライブを待っています…";
 "Don't show on Network" = "ネットワークに表示しない";
 "Show hidden computers" = "隠しているコンピューターを表示";
+"Services" = "サービス";
+"Restore" = "元に戻す";
+"Empty Recycle Bin" = "ごみ箱を空にする";
+"Show package contents" = "パッケージの内容を表示";
+"Tags" = "タグ";
+"Default file manager" = "デフォルトのファイルマネージャ";
+"Folders and “Show in Finder” from other apps open here" = "フォルダとほかのアプリの“Finderに表示”がここで開きます";

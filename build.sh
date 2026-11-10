@@ -83,6 +83,23 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSMinimumSystemVersion</key>    <string>14.0</string>
     <key>FEUpdateRepo</key>              <string>${FE_UPDATE_REPO:-Swallow74/file-explorer-mac}</string>
     <key>NSHighResolutionCapable</key>   <true/>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>      <string>Folder</string>
+            <key>CFBundleTypeRole</key>      <string>Viewer</string>
+            <key>LSHandlerRank</key>         <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array><string>public.folder</string><string>public.volume</string></array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>      <string>File</string>
+            <key>CFBundleTypeRole</key>      <string>None</string>
+            <key>LSHandlerRank</key>         <string>None</string>
+            <key>LSItemContentTypes</key>
+            <array><string>public.item</string></array>
+        </dict>
+    </array>
     <key>NSQuitAlwaysKeepsWindows</key>  <false/>
     <key>NSSupportsAutomaticTermination</key><false/>
     <key>NSDesktopFolderUsageDescription</key>

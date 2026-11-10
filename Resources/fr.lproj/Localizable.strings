@@ -493,3 +493,10 @@
 "Waiting for the network drive…" = "En attente du lecteur réseau…";
 "Don't show on Network" = "Ne pas afficher sur le réseau";
 "Show hidden computers" = "Afficher les ordinateurs masqués";
+"Services" = "Services";
+"Restore" = "Restaurer";
+"Empty Recycle Bin" = "Vider la corbeille";
+"Show package contents" = "Afficher le contenu du paquet";
+"Tags" = "Tags";
+"Default file manager" = "Gestionnaire de fichiers par défaut";
+"Folders and “Show in Finder” from other apps open here" = "Les dossiers et « Afficher dans le Finder » des autres apps s’ouvrent ici";

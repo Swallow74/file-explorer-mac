@@ -493,3 +493,10 @@
 "Waiting for the network drive…" = "Очікування мережевого диска…";
 "Don't show on Network" = "Не показувати в мережі";
 "Show hidden computers" = "Показати приховані комп'ютери";
+"Services" = "Служби";
+"Restore" = "Відновити";
+"Empty Recycle Bin" = "Очистити кошик";
+"Show package contents" = "Показати вміст пакета";
+"Tags" = "Теги";
+"Default file manager" = "Типовий файловий менеджер";
+"Folders and “Show in Finder” from other apps open here" = "Теки та «Показати у Finder» з інших програм відкриваються тут";

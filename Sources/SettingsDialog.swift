@@ -118,6 +118,8 @@ struct SettingsDialog: View {
         .onTapGesture { settings.language = code }
     }
 
+    @State private var isFileViewer = FileViewer.isDefault
+
     private var appearance: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(tr("Theme")).font(Win.body(12, weight: .semibold)).foregroundStyle(Win.text)
@@ -174,6 +176,14 @@ struct SettingsDialog: View {
             SettingsRow(title: tr("Hidden items")) {
                 WinToggle(isOn: Binding(get: { prefs.showHidden },
                                         set: { prefs.showHidden = $0; ex.reload() }))
+            }
+
+            Text("macOS").font(Win.body(12, weight: .semibold))
+                .foregroundStyle(Win.text).padding(.top, 14)
+            SettingsRow(title: tr("Default file manager"),
+                        subtitle: tr("Folders and “Show in Finder” from other apps open here")) {
+                WinToggle(isOn: Binding(get: { isFileViewer },
+                                        set: { FileViewer.setDefault($0); isFileViewer = $0 }))
             }
         }
     }

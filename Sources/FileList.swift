@@ -623,6 +623,7 @@ struct DetailsRow: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .opacity(cutOut ? 0.45 : 1)
+                    TagDots(tags: item.tags)
                 }
             }
             .padding(.leading, 10)
@@ -741,6 +742,7 @@ struct IconCell: View {
         VStack(spacing: 6) {
             ItemIcon(item: item, size: size)
                 .opacity(cutOut ? 0.45 : 1)
+                .overlay(alignment: .bottomTrailing) { TagDots(tags: item.tags) }
             if ex.tab.editing == item.id {
                 RenameField(ex: ex, item: item).frame(height: 20).padding(.horizontal, 4)
             } else {
@@ -923,5 +925,24 @@ struct ContentRow: View {
         .background(WinRR(radius: 4).fill(selected ? Win.selected : (hovering ? Win.subtleHover : .clear)))
         .onHover { hovering = $0 }
         .itemInteraction(ex, menus, item)
+    }
+}
+
+/// Finder tags as the overlapping colour dots the Finder draws after a name.
+struct TagDots: View {
+    let tags: [String]
+
+    var body: some View {
+        if !tags.isEmpty {
+            HStack(spacing: -3) {
+                ForEach(tags.prefix(3), id: \.self) { tag in
+                    Circle()
+                        .fill(Tags.color(tag).map { Color(nsColor: $0) } ?? Win.chrome)
+                        .overlay(Circle().stroke(Tags.color(tag) == nil ? Win.textTertiary : Win.chrome, lineWidth: 1))
+                        .frame(width: 9, height: 9)
+                }
+            }
+            .help(tags.map(Tags.name).joined(separator: ", "))
+        }
     }
 }

@@ -493,3 +493,10 @@
 "Waiting for the network drive…" = "Väntar på den nätverksenheten…";
 "Don't show on Network" = "Visa inte i nätverket";
 "Show hidden computers" = "Visa dolda datorer";
+"Services" = "Tjänster";
+"Restore" = "Återställ";
+"Empty Recycle Bin" = "Töm papperskorgen";
+"Show package contents" = "Visa paketets innehåll";
+"Tags" = "Taggar";
+"Default file manager" = "Standardfilhanterare";
+"Folders and “Show in Finder” from other apps open here" = "Mappar och ”Visa i Finder” från andra appar öppnas här";

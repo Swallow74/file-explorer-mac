@@ -21,6 +21,16 @@ enum ContextMenus {
         let isFolder = single && sel[0].isDirectory && !sel[0].isPackage
         var entries: [MenuEntry] = []
 
+        if ex.tab.location == .recycleBin {
+            let urls = sel.map(\.url)
+            entries.append(MenuEntry(title: tr("Restore"), icon: .undo,
+                                     enabled: urls.contains { TrashLog.original(of: $0) != nil }) {
+                if TrashLog.restore(urls) == 0 { NSSound.beep() }
+                ex.tab.selection = []
+                ex.reload()
+            })
+            entries.append(.sep())
+        }
         entries.append(MenuEntry(title: tr("Open"), icon: .openWith, shortcut: "Enter") { ex.openSelection() })
         if isFolder {
             entries.append(MenuEntry(title: tr("Open in new tab"), icon: .plus) {
@@ -31,6 +41,11 @@ enum ContextMenus {
             })
         } else if single {
             entries.append(MenuEntry(title: tr("Open with"), icon: .openWith, submenu: openWithMenu(sel[0])))
+            if sel[0].isPackage {
+                entries.append(MenuEntry(title: tr("Show package contents"), icon: .folderOutline) {
+                    ex.go(to: sel[0].url)
+                })
+            }
         }
         if isFolder {
             let url = sel[0].url
@@ -67,6 +82,20 @@ enum ContextMenus {
             Shelf.shared.add(sel.map(\.url))
             Prefs.shared.showShelf = true
         })
+        if !ex.isInsideArchive, let dir = ex.currentDirectory, !Loader.isRemote(dir) {
+            let urls = sel.map(\.url)
+            entries.append(MenuEntry(title: tr("Tags"), icon: .palette, submenu: Tags.standard.enumerated().map { i, tag in
+                MenuEntry(title: tag.name, checked: sel.allSatisfy { $0.tags.contains { Tags.label($0) == i + 1 } }) {
+                    Tags.toggle(label: i + 1, on: urls)
+                    ex.reload()
+                }
+            }))
+        }
+        if !ex.isInsideArchive, sel.contains(where: { !$0.isDirectory || $0.isPackage }) {
+            entries.append(MenuEntry(title: "AirDrop", icon: .share) {
+                NSSharingService(named: .sendViaAirDrop)?.perform(withItems: sel.map(\.url))
+            })
+        }
         entries.append(MenuEntry(title: tr("Copy as path"), icon: .copy,
                                  shortcut: Settings.shared.display(for: .copyPath)) { ex.copyPath() })
         entries.append(MenuEntry(title: tr("Compress to ZIP file"), icon: .compress) { ex.zipSelection() })
@@ -79,7 +108,7 @@ enum ContextMenus {
         })
         entries.append(.sep())
         entries.append(MenuEntry(title: tr("Show in Finder"), icon: .eye) {
-            NSWorkspace.shared.activateFileViewerSelecting(sel.map(\.url))
+            FileViewer.showInFinder(sel.map(\.url))
         })
         entries.append(.sep())
         entries.append(MenuEntry(title: tr("Properties"), icon: .properties, shortcut: Settings.shared.display(for: .properties)) {
@@ -102,6 +131,12 @@ enum ContextMenus {
                  MenuEntry(title: tr("Ascending"), radio: prefs.sortAscending) { prefs.sortAscending = true; ex.resort() },
                  MenuEntry(title: tr("Descending"), radio: !prefs.sortAscending) { prefs.sortAscending = false; ex.resort() }]),
             MenuEntry(title: tr("Refresh"), icon: .refresh, shortcut: Settings.shared.display(for: .refresh)) { ex.reload() },
+        ] + (ex.tab.location == .recycleBin ? [
+            MenuEntry(title: tr("Empty Recycle Bin"), icon: .recycleBin, enabled: !ex.tab.items.isEmpty) {
+                ex.selectAll()
+                ex.deleteSelection(permanent: true)
+            },
+        ] : []) + [
             .sep(),
             MenuEntry(title: tr("Paste"), icon: .paste, shortcut: Settings.shared.display(for: .paste),
                       enabled: Clipboard.hasFiles && ex.currentDirectory != nil) { ex.paste() },

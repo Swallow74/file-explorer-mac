@@ -267,6 +267,7 @@ enum SelfTest {
         checkColumnFitting()
         checkMarquee(ex: ex, root: root)
         checkBatchRename()
+        checkMacIntegration(root: root)
         checkArchives(root: root)
         checkCompare(root: root, sub: sub)
         checkShelf(root: root)
@@ -559,6 +560,35 @@ enum SelfTest {
 
         marquee.setItems([:], for: ex)
         marquee.setZone(.zero, for: ex)
+    }
+
+    private static func checkMacIntegration(root: URL) {
+        let fm = FileManager.default
+        let file = root.appendingPathComponent("tagged.txt")
+        fm.createFile(atPath: file.path, contents: Data("x".utf8))
+        if let tag = Tags.standard.last?.name {
+            Tags.toggle(label: 7, on: [file])
+            check("a Finder tag is written and listed with the folder",
+                  Loader.contents(of: root, showHidden: false).first { $0.name == "tagged.txt" }?.tags.map(Tags.name) == [tag]
+                  && Tags.color("x\n6") != nil && Tags.color("x") == nil && Tags.label("Red\n0") == 6
+                  && (try? file.resourceValues(forKeys: [.tagNamesKey]))?.tagNames == [tag])
+            Tags.toggle(label: 7, on: [file])
+            check("toggling the tag again removes it", Tags.read(file).isEmpty)
+        }
+        let trashed = Ops.trash([file])
+        check("the Recycle Bin remembers where an item came from",
+              trashed.first.flatMap { TrashLog.original(of: $0.trashed) }?.path == file.path)
+        check("Restore puts it back",
+              TrashLog.restore(trashed.map(\.trashed)) == 1 && fm.fileExists(atPath: file.path))
+        try? fm.removeItem(at: file)
+
+        let list = NSAppleEventDescriptor.list()
+        list.insert(NSAppleEventDescriptor(fileURL: root), at: 1)
+        let event = NSAppleEventDescriptor(eventClass: 0x6D697363, eventID: 0x6D766973,
+                                           targetDescriptor: nil, returnID: -1, transactionID: 0)
+        event.setParam(list, forKeyword: keyDirectObject)
+        check("a reveal request resolves to file URLs",
+              FileViewer.urls(from: event).map(\.standardizedFileURL.path) == [root.standardizedFileURL.path])
     }
 
     private static func checkBatchRename() {

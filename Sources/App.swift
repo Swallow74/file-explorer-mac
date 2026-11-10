@@ -35,6 +35,8 @@ final class AppState {
         }
     }
 
+    var hasWindows: Bool { !windows.isEmpty }
+
     func model(for window: NSWindow?) -> WindowModel? {
         guard let window else { return nil }
         return map[ObjectIdentifier(window)]
@@ -101,9 +103,28 @@ func clampToScreen(_ window: NSWindow) {
 }
 
 /// Lets the borderless-looking window still take key/main status.
-final class ExplorerWindow: NSWindow {
+final class ExplorerWindow: NSWindow, NSServicesMenuRequestor {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    // Publishing the selection as file URLs is all the Services menu needs to
+    // offer every Finder service and Quick Action for the selected files.
+    override func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?,
+                                 returnType: NSPasteboard.PasteboardType?) -> Any? {
+        if returnType == nil, let sendType, [.fileURL, .string].contains(sendType),
+           !(firstResponder is NSTextView),
+           let ex = AppState.shared.explorer(for: self), !ex.selectedItems.isEmpty {
+            return self
+        }
+        return super.validRequestor(forSendType: sendType, returnType: returnType)
+    }
+
+    func writeSelection(to pboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Bool {
+        guard let urls = AppState.shared.explorer(for: self)?.selectedItems.map(\.url),
+              !urls.isEmpty else { return false }
+        pboard.clearContents()
+        return pboard.writeObjects(urls as [NSURL])
+    }
 }
 
 // MARK: - Delegate
@@ -113,6 +134,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var scrollMonitor: Any?
     private var rightClickMonitor: Any?
     private var marqueeMonitor: Any?
+    /// Set when the launch came from "open this folder" / a reveal request:
+    /// that event already opened a window, so the default Home one is skipped.
+    var openedFromEvent = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
@@ -123,7 +147,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let env = ProcessInfo.processInfo.environment
         if env["WINEXP_TEST"] == "drop" { DropHighlight.forceOn = true }
         let start: Location = env["WINEXP_START"].map { .folder(URL(fileURLWithPath: $0)) } ?? .home
-        AppState.shared.openNewWindow(at: start)
+        FileViewer.installRevealHandler(self)
+        if !(openedFromEvent && AppState.shared.hasWindows) {
+            AppState.shared.openNewWindow(at: start)
+        }
         installKeyHandler()
         NSApp.activate(ignoringOtherApps: true)
         if env["WINEXP_SELFTEST"] == nil && env["WINEXP_DEMO"] == nil && env["WINEXP_SNAPSHOT"] == nil {
@@ -173,6 +200,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(withTitle: tr("About File Explorer"), action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         let upd = appMenu.addItem(withTitle: tr("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         upd.target = self
+        appMenu.addItem(.separator())
+        let services = appMenu.addItem(withTitle: tr("Services"), action: nil, keyEquivalent: "")
+        let servicesMenu = NSMenu(title: tr("Services"))
+        services.submenu = servicesMenu
+        NSApp.servicesMenu = servicesMenu
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: tr("Hide File Explorer"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(withTitle: tr("Quit File Explorer"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -441,7 +473,7 @@ enum Keys {
                     configuration: NSWorkspace.OpenConfiguration())
             }
         case .showInFinder:
-            NSWorkspace.shared.activateFileViewerSelecting(ex.selectedItems.map(\.url))
+            FileViewer.showInFinder(ex.selectedItems.map(\.url))
         case .toggleHidden: prefs.showHidden.toggle(); ex.reload()
         case .toggleExtensions: prefs.showExtensions.toggle()
         case .toggleNavPane: prefs.showNavPane.toggle()

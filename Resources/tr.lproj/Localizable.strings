@@ -493,3 +493,10 @@
 "Waiting for the network drive…" = "Ağ sürücüsü bekleniyor…";
 "Don't show on Network" = "Ağda gösterme";
 "Show hidden computers" = "Gizli bilgisayarları göster";
+"Services" = "Servisler";
+"Restore" = "Geri yükle";
+"Empty Recycle Bin" = "Geri Dönüşüm Kutusu'nu boşalt";
+"Show package contents" = "Paket içeriğini göster";
+"Tags" = "Etiketler";
+"Default file manager" = "Varsayılan dosya yöneticisi";
+"Folders and “Show in Finder” from other apps open here" = "Klasörler ve diğer uygulamalardaki “Finder'da Göster” burada açılır";

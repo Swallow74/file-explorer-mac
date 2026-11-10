@@ -11,7 +11,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
-[![Tests](https://img.shields.io/badge/tests-164%20passing-6CCB5F?style=flat-square)](#tests)
+[![Tests](https://img.shields.io/badge/tests-170%20passing-6CCB5F?style=flat-square)](#tests)
 [![Build](https://github.com/Swallow74/file-explorer-mac/actions/workflows/build.yml/badge.svg)](https://github.com/Swallow74/file-explorer-mac/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
@@ -78,6 +78,8 @@ Everything below is optional. Turn a feature off and the app is still the Explor
 **Workspaces.** Save the tabs open in each pane, the split and the view mode under a name, and restore them later.
 
 **Network shares** (`Ctrl+K`). Connect to SMB, AFP, NFS, FTP and WebDAV, with recent servers remembered. macOS owns the sign-in, so no password is ever typed into File Explorer. The **Network** page also lists the machines found on the local network — Bonjour announcements plus a pass on the connected subnets — each opening into its shared folders; the Mac itself is never listed, and any computer can be dismissed with right-click > *Don't show on Network*. Opening a sleeping or slow server shows a "waiting for the server" card while the listing runs in the background, so the window keeps responding. SFTP and S3 are not supported, because macOS cannot mount them without a third-party filesystem.
+
+**Finder replacement.** *Settings > Appearance > macOS > Default file manager* makes File Explorer the system file viewer: folders opened from the Dock, the Terminal (`open .`) or any other app land in a tab here, and every app's *Show in Finder* reveals the file here with it selected. Switching it off hands both back to the Finder. Folders dropped on the Dock icon open too. Finder **tags** show as colour dots after the name and are set from right-click > *Tags*, stored exactly as the Finder stores them. The app menu carries the system **Services** menu for the selection (Quick Actions included), the context menu sends files over **AirDrop** and opens bundles with *Show package contents*, and search adds **Spotlight** results — matches inside files, not just in names — on indexed local volumes. In the Recycle Bin, *Restore* puts back whatever File Explorer deleted and *Empty Recycle Bin* clears it.
 
 **Commands.** Your own scripts in the context menu, with the selection in the environment (`$FE_SELECTION`, `$FE_NAMES`, `$FE_FIRST`, `$FE_DIR`, `$FE_COUNT`). Managed from Settings, stored in `~/Library/Application Support/File Explorer/commands.json`. Deliberately scripts rather than loadable native code: a plugin that can crash or compromise the app is not a feature.
 
@@ -252,6 +254,7 @@ Sources/
   WindowModel.swift    One or two panes per window
   Transfers.swift      Background copy and move queue with progress
   Updater.swift        Update check against GitHub Releases and self-update
+  MacIntegration.swift Default file viewer, Finder tags, Spotlight, Recycle Bin restore
   Archives.swift       Reading and extracting zip and tar archives
   BatchRename.swift    The rename rule and its dialog
   CompareSync.swift    Folder comparison and one-way sync
@@ -305,7 +308,7 @@ Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_LANG=<code
 ## Deliberate differences
 
 - **Extensions are shown by default.** Windows hides known ones. The toggle is in `View > Show > File name extensions`.
-- **The Recycle Bin is the macOS Trash**, so deleted items land where the rest of the system expects them.
+- **The Recycle Bin is the macOS Trash**, so deleted items land where the rest of the system expects them. *Restore* only knows the origin of items File Explorer itself deleted: the Finder keeps its own "Put Back" records private.
 - **Drives.** The boot volume is labelled `Local Disk (C:)`, other locally mounted volumes appear under This PC by their own names, and network-mounted volumes appear only under Network.
 - **"Account disconnected"** reports what is actually on the Mac. It reads *iCloud Drive* or *OneDrive* when either is present, and *Account disconnected* when neither is.
 - Archive browsing is read-only. Dropping files into a zip is not supported.
@@ -325,6 +328,11 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - Safer transfers: a failed cross-volume move records its orphaned copy so undo can remove it, same-volume moves advance the bar per item, cancel no longer stalls the main thread, copy collisions always get the `- Copy` suffix.
 - Undo and redo are honest: per-item failures are reported, only what really reverted is redoable, undoing *New folder* restores the same items, and every tab showing a touched folder refreshes.
 - **Hostile archives refused.** A zip with a member named `-P` could write outside the extraction folder; entry names are now passed to `bsdtar` after `--`, and a folder copied into itself is rejected.
+
+**macOS integration**
+- **Default file manager** switch: takes over folder opening and *Show in Finder* requests system-wide (`NSFileViewer` plus the `public.folder` handler), and gives them back when turned off.
+- **Finder tags**: colour dots in Details and icon views, a *Tags* submenu to set them; skipped on network volumes to keep listings fast.
+- **Services menu**, **AirDrop**, *Show package contents*, **Spotlight** content search, Recycle Bin *Restore* and *Empty Recycle Bin*.
 
 **Navigation and views**
 - **Nav bar matches Windows 11**: a `⌄` history button between forward and up opens the tab's whole navigation history with the current page checked, and Refresh now sits after the address bar (before the search box) instead of beside the arrows.
@@ -362,7 +370,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - The interface is translated into 16 languages, with a language picker in Settings, automatic detection of the macOS language and an English fallback.
 
 **Tests**
-- The self-test suite grew from 49 to more than 164 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
+- The self-test suite grew from 49 to more than 170 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
 
 Ideas and behaviours borrowed from other open-source Mac explorers (MacXplorer, MaXplorer, MacExplorer, explorer-macos) were **reimplemented from scratch**; no code from GPL projects is included.
 

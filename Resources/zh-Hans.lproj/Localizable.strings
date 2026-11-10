@@ -493,3 +493,10 @@
 "Waiting for the network drive…" = "正在等待网络驱动器…";
 "Don't show on Network" = "不在网络中显示";
 "Show hidden computers" = "显示隐藏的电脑";
+"Services" = "服务";
+"Restore" = "还原";
+"Empty Recycle Bin" = "清空回收站";
+"Show package contents" = "显示包内容";
+"Tags" = "标签";
+"Default file manager" = "默认文件管理器";
+"Folders and “Show in Finder” from other apps open here" = "文件夹以及其他 App 的“在访达中显示”将在此处打开";

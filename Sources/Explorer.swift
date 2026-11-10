@@ -211,6 +211,7 @@ enum Ops {
                 if let r = resulting as URL? { out.append((u, r)) }
             } catch { NSSound.beep() }
         }
+        TrashLog.record(out)
         return out
     }
 
@@ -1244,6 +1245,13 @@ final class Explorer: ObservableObject {
                     found.append(item)
                     if found.count >= 1000 { break }
                 }
+            }
+            // Spotlight adds what a name walk cannot: matches inside the
+            // files, and names beyond the scan cap.
+            var seen = Set(found.map(\.id))
+            for u in Spotlight.find(text, in: root) where found.count < 1000 && !seen.contains(u.path) {
+                if !showHidden && u.path.dropFirst(root.path.count).contains("/.") { continue }
+                if let item = Loader.item(at: u) { found.append(item); seen.insert(item.id) }
             }
             let sorted = Loader.sort(found, by: key, ascending: asc)
             DispatchQueue.main.async {

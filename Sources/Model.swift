@@ -20,6 +20,9 @@ struct FileItem: Identifiable, Hashable {
     let modified: Date
     let created: Date
     let ext: String
+    /// Finder tags, as stored: "Name" or "Name\n<colour 1-7>". Left empty on network volumes, where reading them costs
+    /// one extended-attribute round trip per file.
+    var tags: [String] = []
 
     var id: String { url.path }
 
@@ -372,7 +375,7 @@ enum Loader {
         .fileSizeKey, .totalFileAllocatedSizeKey, .contentModificationDateKey, .creationDateKey, .nameKey,
     ]
 
-    static func item(at url: URL) -> FileItem? {
+    static func item(at url: URL, tags: Bool = false) -> FileItem? {
         let v = try? url.resourceValues(forKeys: Set(keys))
         let name = v?.name ?? url.lastPathComponent
         return FileItem(
@@ -385,17 +388,19 @@ enum Loader {
             size: Int64(v?.fileSize ?? v?.totalFileAllocatedSize ?? 0),
             modified: v?.contentModificationDate ?? .distantPast,
             created: v?.creationDate ?? .distantPast,
-            ext: url.pathExtension
+            ext: url.pathExtension,
+            tags: tags ? Tags.read(url) : []
         )
     }
 
     static func contents(of url: URL, showHidden: Bool) -> [FileItem] {
         let fm = FileManager.default
+        let tags = !isRemote(url)
         guard let urls = try? fm.contentsOfDirectory(
             at: url, includingPropertiesForKeys: keys,
             options: showHidden ? [] : [.skipsHiddenFiles]
         ) else { return [] }
-        return urls.compactMap { item(at: $0) }.filter { showHidden || !$0.isHidden }
+        return urls.compactMap { item(at: $0, tags: tags) }.filter { showHidden || !$0.isHidden }
     }
 
     /// Mounted local volumes. Network shares are listed under Network only.
