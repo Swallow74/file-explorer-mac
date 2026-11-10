@@ -34,6 +34,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
 | **Eight view modes** | Icon grids with live Quick Look thumbnails, List that flows into columns, Details with sortable resizable columns, Tiles, Content. **Group by** Name, Type, Date modified or Size, with collapsible Windows-style section headers (List, Tiles and Content ignore grouping, as Windows does). |
 | **It actually does the work** | Copy, cut and move — same-volume copies are APFS clones, instant and free until modified — paste with `- Copy` naming in the same folder and the Windows "Replace or Skip Files" prompt (replace, skip, keep both) when the destination already has the names, eject for external drives, rename, ZIP, shortcuts, Recycle Bin and permanent delete, all with undo and redo. Drag and drop works inside the app, onto sidebar folders and Quick access tiles, and to and from Finder, with the drop target lighting up as you hover it. Rubber-band selection works from any empty space, additive with `Shift` or `Ctrl`. Clicking an already-selected name again turns it into an edit field, as in Explorer and Finder, while a double-click still opens. |
+| **A Finder replacement** | One switch in Settings makes it the system file manager: folders opened from the Dock, the Terminal or other apps, and every *Show in Finder*, land here. Finder tags, the Services menu, AirDrop, Spotlight search inside file contents, package contents and a Recycle Bin that can restore and empty. See [Finder replacement](#power-tools). |
 | **Your language** | The interface is translated into 16 languages (see [Languages](#languages)) and follows the macOS language by default. English is the fallback. |
 | **Power tools** | Dual pane, a background transfer queue with progress, archive browsing, batch rename, folder compare and sync, a drop shelf, workspaces, network shares and user-defined commands. Tabs get a right-click menu (duplicate, paste-to-tab, close), and dropping a file onto a tab sends it to that tab's folder without leaving the current one. |
 
@@ -45,7 +46,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 
 ## Download
 
-Grab the latest build from [Releases](https://github.com/gmazaratti/windows-explorer-mac/releases/latest). Universal binary, Apple Silicon and Intel, macOS 14 or newer.
+Grab the latest build from [Releases](https://github.com/Swallow74/file-explorer-mac/releases/latest). Universal binary, Apple Silicon and Intel, macOS 14 or newer.
 
 Since 1.3.1 the release is signed with a Developer ID and **notarized by Apple**: unzip, drag to Applications and double-click, nothing to unblock. Releases up to 1.3.0 were only ad-hoc signed; if macOS refuses one of those, use **System Settings > Privacy & Security > Open Anyway**, or clear the quarantine flag:
 
