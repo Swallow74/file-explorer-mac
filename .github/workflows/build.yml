@@ -24,7 +24,7 @@ jobs:
   # run builds it). Only the last push reaches the expensive macOS job.
   debounce:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 90
     outputs:
       build: ${{ steps.check.outputs.build }}
     steps:
