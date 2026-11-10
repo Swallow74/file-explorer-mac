@@ -6,6 +6,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# The user commits in rapid bursts. Debounce: the macos job is queued only
+# when main has been quiet for this many minutes; earlier pushes bow out
+# before wasting a slot on the arm64 runner queue.
+env:
+  DEBOUNCE_MINUTES: "5"
+
 # One runner per branch and trigger: a new push replaces the queued run
 # rather than piling up behind it.
 concurrency:
@@ -13,7 +19,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Cheap Ubuntu gate that absorbs the burst: it sleeps out the debounce
+  # window, then stands down if a younger commit exists (that commit's own
+  # run builds it). Only the last push reaches the expensive macOS job.
+  debounce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    steps:
+      - name: Let the burst settle, then stand down if superseded
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" != "push" ]; then
+            # Manual runs and PRs build straight away.
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sleep "${DEBOUNCE_MINUTES}m"
+          head=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "main stopped moving for ${DEBOUNCE_MINUTES} minutes, building $GITHUB_SHA"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "newer commit $head exists, standing down for $GITHUB_SHA"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-and-test:
+    if: needs.debounce.outputs.build == 'true'
+    needs: debounce
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
