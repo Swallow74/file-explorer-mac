@@ -56,6 +56,11 @@ struct StatusBar: View {
         }
         .frame(height: Win.M.statusBarHeight)
         .background(Win.statusBar)
+        .overlay(alignment: .center) {
+            Link("AlexTech.ai", destination: URL(string: "https://www.alextech.ai/")!)
+                .font(Win.body(11))
+                .foregroundStyle(Win.textSecondary)
+        }
         .overlay(alignment: .top) { Rectangle().fill(Win.divider).frame(height: 1) }
     }
 }
