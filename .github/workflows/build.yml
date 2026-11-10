@@ -28,6 +28,10 @@ jobs:
     outputs:
       build: ${{ steps.check.outputs.build }}
     steps:
+      # Without the checkout there is no `origin` remote to read main from,
+      # and the comparison below would silently see an empty head.
+      - uses: actions/checkout@v4
+
       - name: Let the burst settle, then stand down if superseded
         id: check
         run: |
@@ -38,7 +42,11 @@ jobs:
           fi
           sleep "${DEBOUNCE_MINUTES}m"
           head=$(git ls-remote origin refs/heads/main | cut -f1)
-          if [ "$head" = "$GITHUB_SHA" ]; then
+          if [ -z "$head" ]; then
+            # Never let a failed lookup be read as "someone else is building".
+            echo "::error::could not read main from origin, building anyway"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [ "$head" = "$GITHUB_SHA" ]; then
             echo "main stopped moving for ${DEBOUNCE_MINUTES} minutes, building $GITHUB_SHA"
             echo "build=true" >> "$GITHUB_OUTPUT"
           else
