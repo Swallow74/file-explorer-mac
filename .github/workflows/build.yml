@@ -10,7 +10,7 @@ on:
 # when main has been quiet for this many minutes; earlier pushes bow out
 # before wasting a slot on the arm64 runner queue.
 env:
-  DEBOUNCE_MINUTES: "5"
+  DEBOUNCE_MINUTES: "60"
 
 # One runner per branch and trigger: a new push replaces the queued run
 # rather than piling up behind it.
