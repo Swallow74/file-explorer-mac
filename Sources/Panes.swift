@@ -57,11 +57,56 @@ struct StatusBar: View {
         .frame(height: Win.M.statusBarHeight)
         .background(Win.statusBar)
         .overlay(alignment: .center) {
-            Link("AlexTech.ai", destination: URL(string: "https://www.alextech.ai/")!)
-                .font(Win.body(11))
-                .foregroundStyle(Win.textSecondary)
+            BrandLink()
         }
         .overlay(alignment: .top) { Rectangle().fill(Win.divider).frame(height: 1) }
+    }
+}
+
+/// "AlexTech.ai" link: azure text with a soft glint that sweeps across every few seconds.
+/// The animation only runs during the sweep, so the bar costs nothing the rest of the time.
+struct BrandLink: View {
+    @Environment(\.colorScheme) private var scheme
+    @State private var phase: CGFloat = 0
+    @State private var hover = false
+
+    var body: some View {
+        let label = Text("AlexTech.ai").font(Win.body(12).weight(.semibold))
+        let azure = scheme == .dark ? Color(red: 0.36, green: 0.72, blue: 1.0)
+                                    : Color(red: 0.0, green: 0.42, blue: 0.82)
+        Link(destination: URL(string: "https://www.alextech.ai/")!) {
+            label
+                .foregroundStyle(azure.opacity(hover ? 1 : 0.88))
+                .overlay {
+                    GeometryReader { g in
+                        LinearGradient(colors: [.clear, .white.opacity(0.95), .clear],
+                                       startPoint: .leading, endPoint: .trailing)
+                            .frame(width: g.size.width * 0.45)
+                            .offset(x: -g.size.width * 0.45 + g.size.width * 1.45 * phase)
+                    }
+                    .mask(label)
+                    .allowsHitTesting(false)
+                }
+                .shadow(color: azure.opacity(hover ? 0.55 : 0.25), radius: hover ? 5 : 3)
+                .padding(.horizontal, 8)
+                .frame(height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { inside in
+            hover = inside
+            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
+        .help("https://www.alextech.ai/")
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                withAnimation(.easeInOut(duration: 1.3)) { phase = 1 }
+                try? await Task.sleep(nanoseconds: 1_400_000_000)
+                var t = Transaction(); t.disablesAnimations = true
+                withTransaction(t) { phase = 0 }
+            }
+        }
     }
 }
 

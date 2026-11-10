@@ -29,7 +29,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 
 |  |  |
 |---|---|
-| **Pixel-faithful chrome** | Tab strip with Windows caption buttons drawn where the traffic lights normally go, breadcrumb address bar with sibling drop-downs, command bar, status bar (with a centred AlexTech.ai link). Colours come from the WinUI 3 dark and light palettes. |
+| **Pixel-faithful chrome** | Tab strip with Windows caption buttons drawn where the traffic lights normally go, breadcrumb address bar with sibling drop-downs, command bar, status bar (with a centred, azure AlexTech.ai link and a glint that sweeps over it every few seconds). Colours come from the WinUI 3 dark and light palettes. |
 | **Redrawn Fluent icons** | Segoe Fluent Icons isn't licensed onto macOS, so every glyph is redrawn as vector geometry on Windows' own 16pt design grid, including the two-tone accent treatment on cut, copy, paste, rename, share, sort and view. |
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
 | **Eight view modes** | Icon grids with live thumbnails (images decoded by content, so a JPEG renamed `.webp` still shows; WebP, AVIF, HEIC, EXR, RAW, PDF, video, audio cover art, documents, text, code and fonts), List that flows into columns, Details with sortable resizable columns, Tiles, Content. **Group by** Name, Type, Date modified or Size, with collapsible Windows-style section headers (List, Tiles and Content ignore grouping, as Windows does). |
