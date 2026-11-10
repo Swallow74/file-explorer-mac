@@ -16,11 +16,11 @@ means: commit → push → **create a GitHub release**.
    from `git tag -l` alone.
 2. **Commit and push `main` before releasing**, so the release matches a
    published commit (release notes / source diff are what the user sees).
-3. `./Tools/release.sh <version>` builds universal, signs (Developer ID,
+3. `./Tools/release.sh <version>` builds arm64, signs (Developer ID,
    keychain), notarizes (`dev-notary` profile, a few minutes), staples, and
-   zips to `build/FileExplorer-<version>-macOS-universal.zip`.
+   zips to `build/FileExplorer-<version>-macOS-arm64.zip`.
    **It does NOT publish** — it only prints the command. Publishing is:
-   `gh release create -R Swallow74/file-explorer-mac v<version> --title "File Explorer for Mac <version>" "build/FileExplorer-<version>-macOS-universal.zip"`
+   `gh release create -R Swallow74/file-explorer-mac v<version> --title "File Explorer for Mac <version>" "build/FileExplorer-<version>-macOS-arm64.zip"`
    (always pass `-R`: an `upstream` remote exists, and without `-R` `gh`
    resolves the wrong repo; the tag `v<version>` is created by that command;
    the title format above is what earlier releases use).
@@ -32,8 +32,8 @@ means: commit → push → **create a GitHub release**.
 
 ## Building and testing
 
-- `./build.sh` — host-arch build to `build/File Explorer.app` (~30 s;
-  `--universal` for both arches). `WINEXP_SELFTEST=1` runs the self-test
+- `./build.sh` — arm64 build to `build/File Explorer.app` (~30 s;
+  Apple Silicon only). `WINEXP_SELFTEST=1` runs the self-test
   suite (must stay green: it covers grouping, l10n, archives, tabs…).
 - GUI smoke-test without clicking: launch the binary directly with env vars
   (`WINEXP_START=<path>` to open at a folder — use it to test a network

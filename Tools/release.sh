@@ -17,7 +17,7 @@ cd "$(dirname "$0")/.."
 VERSION="${1:?usage: release.sh <version>}"
 PROFILE="${NOTARY_PROFILE:-dev-notary}"
 APP="build/File Explorer.app"
-ZIP="build/FileExplorer-$VERSION-macOS-universal.zip"
+ZIP="build/FileExplorer-$VERSION-macOS-arm64.zip"
 
 IDENTITY=$(security find-identity -v -p codesigning \
     | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
@@ -28,7 +28,7 @@ if [ -z "$IDENTITY" ]; then
 fi
 echo "==> Signing as: $IDENTITY"
 
-FE_VERSION="$VERSION" ./build.sh --universal
+FE_VERSION="$VERSION" ./build.sh
 
 # No nested code (one binary, no frameworks), so --deep is not needed.
 codesign --force --options runtime --timestamp \

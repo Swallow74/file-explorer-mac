@@ -46,7 +46,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 
 ## Download
 
-Grab the latest build from [Releases](https://github.com/Swallow74/file-explorer-mac/releases/latest). Universal binary, Apple Silicon and Intel, macOS 14 or newer.
+Grab the latest build from [Releases](https://github.com/Swallow74/file-explorer-mac/releases/latest). Apple Silicon (arm64) only, macOS 14 or newer. Intel Macs are no longer supported from 1.4.17; 1.4.16 is the last universal build.
 
 Since 1.3.1 the release is signed with a Developer ID and **notarized by Apple**: unzip, drag to Applications and double-click, nothing to unblock. Releases up to 1.3.0 were only ad-hoc signed; if macOS refuses one of those, use **System Settings > Privacy & Security > Open Anyway**, or clear the quarantine flag:
 
@@ -95,7 +95,7 @@ cd file-explorer-mac
 open "build/File Explorer.app"
 ```
 
-`./build.sh --universal` produces an Apple Silicon and Intel binary, which is what the releases ship.
+`./build.sh` produces an Apple Silicon (arm64) binary, which is what the releases ship.
 
 To keep it around:
 
@@ -302,7 +302,7 @@ WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 
 Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **165 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
 
-GitHub Actions runs the build, the signature check and this suite on every push (`.github/workflows/build.yml`), and uploads the universal app as a workflow artifact.
+GitHub Actions runs the build, the signature check and this suite on every push (`.github/workflows/build.yml`), and uploads the arm64 app as a workflow artifact.
 
 Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_LANG=<code>` forces the interface language, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_SIZE=1400x900` opens at a given size, `WINEXP_TEST=menu:context|dialog:settings|dialog:about|dual|dual-home|rename|archive|compare|marquee|drop` opens a particular menu, dialog or layout for inspection, and `WINEXP_DEMO=<dir>` drives the scripted tour that produces the animation at the top of this page.
 
@@ -364,8 +364,8 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Update notification**: the app checks the GitHub Releases of the fork at launch (at most once a day) and from the app menu, and lets you skip a version.
 - **One-click self-update**: it downloads the release, verifies it, replaces the installed app and reopens it. If that is not possible it opens the download page instead. A fork can point the check elsewhere with the `FEUpdateRepo` key in `Info.plist`.
 - **Notarized releases** from 1.3.1: Developer ID signature, `Tools/release.sh` signs, notarizes and staples, `Tools/package.sh` builds the zip.
-- `build.sh` builds for the host architecture by default (`--universal` for both), checks that `swiftc` exists, and passes `FE_VERSION` to the bundle so the About panel shows the real version.
-- **CI** on GitHub Actions: universal build, signature check, self-test, app uploaded as an artifact; one queued build per branch.
+- `build.sh` builds arm64 for macOS 14+, checks that `swiftc` exists, and passes `FE_VERSION` to the bundle so the About panel shows the real version.
+- **CI** on GitHub Actions: arm64 build, signature check, self-test, app uploaded as an artifact; one queued build per branch.
 - The README now says plainly that building needs a full Xcode, not just the Command Line Tools.
 
 **Localisation**

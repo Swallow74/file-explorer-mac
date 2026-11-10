@@ -13,20 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  arm-probe:
-    # Dispatch-only: can this account use the ARM pool yet? If this job ever
-    # goes green, move build-and-test onto macos-latest and skip the Intel
-    # queue entirely.
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: macos-latest
-    steps:
-      - run: swiftc --version && uname -m
-
   build-and-test:
-    # macos-14 maps to the ARM pool, which GitHub rejects for this account
-    # ("configuration macos-14-arm64-us-default is not supported"). The Intel
-    # runner still builds both slices; the self-test executes the x86_64 one.
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -40,8 +28,8 @@ jobs:
           sudo xcode-select -s "$xcode/Contents/Developer"
           xcodebuild -version
 
-      - name: Build universal app
-        run: ./build.sh --universal
+      - name: Build app
+        run: ./build.sh
 
       - name: Verify signature
         run: codesign --verify --verbose=2 "build/File Explorer.app"
@@ -51,9 +39,9 @@ jobs:
 
       - name: Package
         run: |
-          ./Tools/package.sh "build/File Explorer.app" FileExplorer-macOS-universal.zip
+          ./Tools/package.sh "build/File Explorer.app" FileExplorer-macOS-arm64.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: FileExplorer-macOS-universal
-          path: FileExplorer-macOS-universal.zip
+          name: FileExplorer-macOS-arm64
+          path: FileExplorer-macOS-arm64.zip
