@@ -11,7 +11,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
-[![Tests](https://img.shields.io/badge/tests-170%20passing-6CCB5F?style=flat-square)](#tests)
+[![Tests](https://img.shields.io/badge/tests-171%20passing-6CCB5F?style=flat-square)](#tests)
 [![Build](https://github.com/Swallow74/file-explorer-mac/actions/workflows/build.yml/badge.svg)](https://github.com/Swallow74/file-explorer-mac/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
@@ -32,7 +32,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 | **Pixel-faithful chrome** | Tab strip with Windows caption buttons drawn where the traffic lights normally go, breadcrumb address bar with sibling drop-downs, command bar, status bar. Colours come from the WinUI 3 dark and light palettes. |
 | **Redrawn Fluent icons** | Segoe Fluent Icons isn't licensed onto macOS, so every glyph is redrawn as vector geometry on Windows' own 16pt design grid, including the two-tone accent treatment on cut, copy, paste, rename, share, sort and view. |
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
-| **Eight view modes** | Icon grids with live Quick Look thumbnails, List that flows into columns, Details with sortable resizable columns, Tiles, Content. **Group by** Name, Type, Date modified or Size, with collapsible Windows-style section headers (List, Tiles and Content ignore grouping, as Windows does). |
+| **Eight view modes** | Icon grids with live thumbnails (images decoded by content, so a JPEG renamed `.webp` still shows; WebP, AVIF, HEIC, EXR, RAW, PDF, video, audio cover art, documents, text, code and fonts), List that flows into columns, Details with sortable resizable columns, Tiles, Content. **Group by** Name, Type, Date modified or Size, with collapsible Windows-style section headers (List, Tiles and Content ignore grouping, as Windows does). |
 | **It actually does the work** | Copy, cut and move — same-volume copies are APFS clones, instant and free until modified — paste with `- Copy` naming in the same folder and the Windows "Replace or Skip Files" prompt (replace, skip, keep both) when the destination already has the names, eject for external drives, rename, ZIP, shortcuts, Recycle Bin and permanent delete, all with undo and redo. Drag and drop works inside the app, onto sidebar folders and Quick access tiles, and to and from Finder, with the drop target lighting up as you hover it. Rubber-band selection works from any empty space, additive with `Shift` or `Ctrl`. Clicking an already-selected name again turns it into an edit field, as in Explorer and Finder, while a double-click still opens. |
 | **A Finder replacement** | One switch in Settings makes it the system file manager: folders opened from the Dock, the Terminal or other apps, and every *Show in Finder*, land here. Finder tags, the Services menu, AirDrop, Spotlight search inside file contents, package contents and a Recycle Bin that can restore and empty. See [Finder replacement](#power-tools). |
 | **Your language** | The interface is translated into 16 languages (see [Languages](#languages)) and follows the macOS language by default. English is the fallback. |
@@ -331,6 +331,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Hostile archives refused.** A zip with a member named `-P` could write outside the extraction folder; entry names are now passed to `bsdtar` after `--`, and a folder copied into itself is rejected.
 
 **macOS integration**
+- **Thumbnails for far more formats**: images are decoded by content through ImageIO (a JPEG saved as `.webp` used to show only a generic icon, because Quick Look trusts the extension), with Quick Look as the fallback and the route for documents, text, code, audio, fonts and the rest; files nothing can draw are asked once, not on every redraw.
 - **Default file manager** switch: takes over folder opening and *Show in Finder* requests system-wide (`NSFileViewer` plus the `public.folder` handler), and gives them back when turned off.
 - **Finder tags**: colour dots in Details and icon views, a *Tags* submenu to set them; skipped on network volumes to keep listings fast.
 - **Services menu**, **AirDrop**, *Show package contents*, **Spotlight** content search, Recycle Bin *Restore* and *Empty Recycle Bin*.
@@ -371,7 +372,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - The interface is translated into 16 languages, with a language picker in Settings, automatic detection of the macOS language and an English fallback.
 
 **Tests**
-- The self-test suite grew from 49 to more than 170 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
+- The self-test suite grew from 49 to more than 171 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
 
 Ideas and behaviours borrowed from other open-source Mac explorers (MacXplorer, MaXplorer, MacExplorer, explorer-macos) were **reimplemented from scratch**; no code from GPL projects is included.
 

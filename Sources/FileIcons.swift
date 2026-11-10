@@ -171,6 +171,8 @@ final class ThumbCache {
     static let shared = ThumbCache()
     private let cache = NSCache<NSString, NSImage>()
     private var inFlight = Set<String>()
+    /// Files no generator could draw: asked once, not on every redraw.
+    private var failed = Set<String>()
 
     func cached(_ url: URL, size: CGFloat) -> NSImage? {
         cache.object(forKey: key(url, size))
@@ -180,22 +182,53 @@ final class ThumbCache {
         "\(url.path)|\(Int(size))" as NSString
     }
 
-    func request(_ url: URL, size: CGFloat, done: @escaping (NSImage) -> Void) {
+    /// Which kinds are worth a thumbnail request at all. Everything Quick Look
+    /// can preview, minus what has an icon of its own (apps, archives, disks).
+    static func wantsThumbnail(_ item: FileItem) -> Bool {
+        switch item.kind {
+        case .image, .video, .pdf, .word, .excel, .powerpoint, .text, .code, .audio, .font: return true
+        case .generic: return !item.ext.isEmpty
+        default: return false
+        }
+    }
+
+    /// Decodes by content, not by extension: a JPEG saved as `.webp` is a very
+    /// common download, and Quick Look refuses it because it trusts the name.
+    static func imageIO(_ url: URL, pixels: CGFloat) -> NSImage? {
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let opts: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: pixels,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
+        return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    }
+
+    func request(_ url: URL, size: CGFloat, kind: FileKind, done: @escaping (NSImage) -> Void) {
         let k = key(url, size) as String
-        if inFlight.contains(k) { return }
+        if inFlight.contains(k) || failed.contains(k) { return }
         inFlight.insert(k)
         let scale = NSScreen.main?.backingScaleFactor ?? 2
-        let req = QLThumbnailGenerator.Request(
-            fileAt: url, size: CGSize(width: size, height: size),
-            scale: scale, representationTypes: .thumbnail)
-        QLThumbnailGenerator.shared.generateBestRepresentation(for: req) { rep, _ in
+        let finish: (NSImage?) -> Void = { img in
             DispatchQueue.main.async {
                 self.inFlight.remove(k)
-                guard let rep else { return }
-                let img = rep.nsImage
+                guard let img else { self.failed.insert(k); return }
                 self.cache.setObject(img, forKey: self.key(url, size))
                 done(img)
             }
+        }
+        let quickLook = {
+            let req = QLThumbnailGenerator.Request(
+                fileAt: url, size: CGSize(width: size, height: size),
+                scale: scale, representationTypes: .thumbnail)
+            QLThumbnailGenerator.shared.generateBestRepresentation(for: req) { rep, _ in
+                finish(rep?.nsImage)
+            }
+        }
+        guard kind == .image else { quickLook(); return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let img = Self.imageIO(url, pixels: size * scale) { finish(img) } else { quickLook() }
         }
     }
 }
@@ -204,6 +237,7 @@ struct ThumbnailIcon: View {
     let url: URL
     let size: CGFloat
     let kind: FileKind
+    var label: String = ""
     @State private var image: NSImage?
 
     var body: some View {
@@ -215,12 +249,12 @@ struct ThumbnailIcon: View {
                     .frame(width: size, height: size)
                     .shadow(color: .black.opacity(0.28), radius: size * 0.02, y: size * 0.015)
             } else {
-                FileSheetIcon(size: size, kind: kind)
+                FileSheetIcon(size: size, kind: kind, label: label)
             }
         }
         .onAppear {
             if let c = ThumbCache.shared.cached(url, size: size) { image = c; return }
-            ThumbCache.shared.request(url, size: size) { img in image = img }
+            ThumbCache.shared.request(url, size: size, kind: kind) { img in image = img }
         }
     }
 }
@@ -246,6 +280,14 @@ struct ItemIcon: View {
     let item: FileItem
     var size: CGFloat = 16
 
+    /// Media kinds keep their own tag (IMG, VID, PDF); the rest show the extension.
+    private static func label(_ item: FileItem) -> String {
+        switch item.kind {
+        case .image, .video, .pdf: return ""
+        default: return item.ext.isEmpty ? "" : String(item.ext.prefix(3)).uppercased()
+        }
+    }
+
     var body: some View {
         switch item.kind {
         case .folder:
@@ -254,14 +296,14 @@ struct ItemIcon: View {
             ArchiveIcon(size: size)
         case .app, .executable:
             SystemIcon(url: item.url, size: size)
-        case .image, .video, .pdf:
-            if size >= 24 { ThumbnailIcon(url: item.url, size: size, kind: item.kind) }
-            else { FileSheetIcon(size: size, kind: item.kind) }
         case .drive, .disk:
             FileSheetIcon(size: size, kind: .disk)
         default:
-            FileSheetIcon(size: size, kind: item.kind,
-                          label: item.ext.isEmpty ? "" : String(item.ext.prefix(3)).uppercased())
+            if size >= 24, ThumbCache.wantsThumbnail(item), !Loader.isRemote(item.url) {
+                ThumbnailIcon(url: item.url, size: size, kind: item.kind, label: Self.label(item))
+            } else {
+                FileSheetIcon(size: size, kind: item.kind, label: Self.label(item))
+            }
         }
     }
 }

@@ -575,6 +575,17 @@ enum SelfTest {
             Tags.toggle(label: 7, on: [file])
             check("toggling the tag again removes it", Tags.read(file).isEmpty)
         }
+        // A JPEG saved as .webp: Quick Look trusts the name and fails, ImageIO reads the content.
+        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 40, pixelsHigh: 30, bitsPerSample: 8,
+                                   samplesPerPixel: 3, hasAlpha: false, isPlanar: false,
+                                   colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        let fake = root.appendingPathComponent("fake.webp")
+        try? rep?.representation(using: .jpeg, properties: [:])?.write(to: fake)
+        check("thumbnails decode by content, not by extension",
+              ThumbCache.imageIO(fake, pixels: 64) != nil
+              && ThumbCache.wantsThumbnail(Loader.item(at: fake)!))
+        try? fm.removeItem(at: fake)
+
         let trashed = Ops.trash([file])
         check("the Recycle Bin remembers where an item came from",
               trashed.first.flatMap { TrashLog.original(of: $0.trashed) }?.path == file.path)

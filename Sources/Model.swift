@@ -44,11 +44,12 @@ struct FileItem: Identifiable, Hashable {
         if isDirectory && !isPackage { return .folder }
         switch ext.lowercased() {
         case "app": return .app
-        case "png", "jpg", "jpeg", "gif", "bmp", "heic", "webp", "tiff", "tif", "svg", "ico", "raw", "cr2":
+        case "png", "jpg", "jpeg", "gif", "bmp", "heic", "webp", "tiff", "tif", "svg", "ico", "raw", "cr2",
+             "avif", "jxl", "jp2", "j2k", "exr", "psd", "dng", "nef", "arw", "orf", "rw2", "raf", "heif", "tga", "dds", "pbm", "pgm", "ppm", "jfif", "hdr":
             return .image
-        case "mp4", "mov", "avi", "mkv", "wmv", "m4v", "webm", "flv", "mpg", "mpeg":
+        case "mp4", "mov", "avi", "mkv", "wmv", "m4v", "webm", "flv", "mpg", "mpeg", "3gp", "ogv", "mts", "m2ts":
             return .video
-        case "mp3", "wav", "flac", "aac", "m4a", "ogg", "wma", "aiff", "mid":
+        case "mp3", "wav", "flac", "aac", "m4a", "ogg", "wma", "aiff", "mid", "opus", "wv", "caf":
             return .audio
         case "pdf": return .pdf
         case "doc", "docx", "rtf", "odt", "pages": return .word

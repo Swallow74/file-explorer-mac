@@ -371,7 +371,7 @@ struct PreviewPane: View {
         image = nil
         guard let item, !item.isDirectory else { return }
         if let cached = ThumbCache.shared.cached(item.url, size: 512) { image = cached; return }
-        ThumbCache.shared.request(item.url, size: 512) { img in
+        ThumbCache.shared.request(item.url, size: 512, kind: item.kind) { img in
             if self.item?.id == item.id { image = img }
         }
     }
