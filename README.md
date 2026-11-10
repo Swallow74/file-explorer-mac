@@ -12,7 +12,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
 [![Tests](https://img.shields.io/badge/tests-171%20passing-6CCB5F?style=flat-square)](#tests)
-[![Build](https://github.com/Swallow74/file-explorer-mac/actions/workflows/build.yml/badge.svg)](https://github.com/Swallow74/file-explorer-mac/actions/workflows/build.yml)
+[![Build](https://github.com/Swallow74/file-explorer-mac/actions/workflows/release.yml/badge.svg)](https://github.com/Swallow74/file-explorer-mac/actions/workflows/release.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
 <img src="docs/demo.gif" width="900" alt="Browsing folders, switching view modes, the context menu, and changing theme and accent colour">
@@ -96,6 +96,14 @@ open "build/File Explorer.app"
 ```
 
 `./build.sh` produces an Apple Silicon (arm64) binary, which is what the releases ship.
+
+After changing the source, run the gate before you commit — it builds and runs the whole test suite in about 36 seconds:
+
+```bash
+./Tools/check.sh
+```
+
+A pre-push hook runs it for you on every push to `main`. Enable it once per clone with `git config core.hooksPath .githooks`.
 
 To keep it around:
 
@@ -285,6 +293,9 @@ Tools/
   MakeIcon.swift       Draws the app icon, one render per icon-set size
   release.sh           Signs, notarizes and staples a release build
   package.sh           Zips the release with its install instructions
+  check.sh             Local gate: builds and runs the self-test suite
+.githooks/
+  pre-push             Runs Tools/check.sh before a push to main
 build.sh               Compiles and assembles the .app bundle
 ```
 
@@ -300,9 +311,17 @@ Two decisions worth calling out:
 WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 ```
 
-Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **165 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
+Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **171 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
 
-GitHub Actions runs the build, the signature check and this suite on every push (`.github/workflows/build.yml`), and uploads the arm64 app as a workflow artifact.
+The suite runs **locally**, before a commit reaches GitHub:
+
+```bash
+./Tools/check.sh          # build + self-test, exits non-zero on failure
+```
+
+A pre-push hook runs the same gate on every push to `main` (36 seconds, no queue, no network). It blocks the push if a check fails; `git push --no-verify` overrides it, `FE_SKIP_PREPUSH=1` skips the hook entirely. Install it once per clone with `git config core.hooksPath .githooks`.
+
+GitHub Actions is kept for what it is uniquely good at: checking the **released artifact**. When a release is published, `.github/workflows/release.yml` compiles the source in a clean environment, runs the suite, then downloads the very zip the in-app updater serves and verifies its Developer ID signature, its notarization ticket and its staple, and runs the suite again **on the shipped binary**.
 
 Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_LANG=<code>` forces the interface language, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_SIZE=1400x900` opens at a given size, `WINEXP_TEST=menu:context|dialog:settings|dialog:about|dual|dual-home|rename|archive|compare|marquee|drop` opens a particular menu, dialog or layout for inspection, and `WINEXP_DEMO=<dir>` drives the scripted tour that produces the animation at the top of this page.
 
@@ -365,7 +384,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **One-click self-update**: it downloads the release, verifies it, replaces the installed app and reopens it. If that is not possible it opens the download page instead. A fork can point the check elsewhere with the `FEUpdateRepo` key in `Info.plist`.
 - **Notarized releases** from 1.3.1: Developer ID signature, `Tools/release.sh` signs, notarizes and staples, `Tools/package.sh` builds the zip.
 - `build.sh` builds arm64 for macOS 14+, checks that `swiftc` exists, and passes `FE_VERSION` to the bundle so the About panel shows the real version.
-- **CI** on GitHub Actions: arm64 build, signature check, self-test, app uploaded as an artifact; one queued build per branch.
+- **CI** on GitHub Actions: the release artifact is verified when a release is published — Developer ID signature, notarization ticket, staple, and the self-test suite run again on the very binary the updater serves. The push-time gate runs locally (`Tools/check.sh`, wired to a pre-push hook), so nothing waits in a runner queue.
 - The README now says plainly that building needs a full Xcode, not just the Command Line Tools.
 
 **Localisation**

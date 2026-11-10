@@ -35,6 +35,22 @@ means: commit → push → **create a GitHub release**.
 - `./build.sh` — arm64 build to `build/File Explorer.app` (~30 s;
   Apple Silicon only). `WINEXP_SELFTEST=1` runs the self-test
   suite (must stay green: it covers grouping, l10n, archives, tabs…).
+- **`./Tools/check.sh` is the gate**: build + self-test, non-zero exit on
+  failure (~36 s, 171 checks). A pre-push hook (`.githooks/pre-push`, enabled
+  with `git config core.hooksPath .githooks`) runs it on every push to
+  `main` and blocks the push if a check fails. `git push --no-verify` or
+  `FE_SKIP_PREPUSH=1` skips it. **Run it before committing**, so nothing
+  broken reaches the repo.
+- **CI is release-only.** `.github/workflows/release.yml` triggers on
+  `release: published` and verifies the *artifact*: it compiles the source in
+  a clean environment, then downloads the published zip, checks the Developer
+  ID signature, the notarization ticket and the staple, and runs the suite
+  again on the shipped binary. There is no push-triggered workflow on
+  purpose — the runner queue on `macos-latest` is slow and was cancelled
+  constantly. Do not add one back without asking the user.
+- The release workflow needs the release to exist: `gh release create` pushes
+  the tag *before* the assets are attached, so a `push: tags` trigger would
+  race with the upload. `release: published` is the correct trigger.
 - GUI smoke-test without clicking: launch the binary directly with env vars
   (`WINEXP_START=<path>` to open at a folder — use it to test a network
   volume, e.g. `WINEXP_START=/Volumes/muletto` — `WINEXP_SIZE=WxH`,
@@ -59,3 +75,5 @@ means: commit → push → **create a GitHub release**.
   *Changes in this fork*.
 - Commit messages are Italian, one line, dense — follow the style of
   `git log --oneline` (e.g. "Questo PC: solo unità locali …").
+- The `pre-push` hook is opt-in per clone: after `git clone`, run
+  `git config core.hooksPath .githooks` to get the local gate back.

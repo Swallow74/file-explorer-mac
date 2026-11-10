@@ -1,0 +1,114 @@
+name: release
+
+# The push-time gate runs locally: ./Tools/check.sh (36 s, 171 self-test
+# checks) is wired to the pre-push hook, so a broken commit never leaves
+# the machine. GitHub Actions is kept for the one thing it is uniquely
+# good at: checking the released artifact in a clean environment, with
+# the Developer ID signature, the notarization ticket and the staple.
+#
+# The trigger is the published release, not the tag: `gh release create`
+# pushes the tag before the assets are attached, so a tag trigger can fire
+# before the zip exists.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    # The app is arm64 only, so an Intel runner cannot check it.
+    runs-on: macos-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select an Xcode the runner actually has
+        # The image default may point at a version that was pulled from the
+        # machine; SwiftUI's @State macro needs a full Xcode, not just the
+        # Command Line Tools.
+        run: |
+          ls -d /Applications/Xcode*.app
+          xcode=$(ls -d /Applications/Xcode_*.app 2>/dev/null | tail -1 || echo /Applications/Xcode.app)
+          sudo xcode-select -s "$xcode/Contents/Developer"
+          xcodebuild -version
+
+      # --- the source, compiled in a clean environment -------------------
+
+      - name: Build the source
+        run: ./build.sh
+
+      - name: Self-test on the fresh build
+        run: WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
+
+      # --- the artifact users actually download -------------------------
+
+      - name: Download the released artifact
+        # The zip attached to the release is the one the in-app updater
+        # serves, signed and notarized by Tools/release.sh.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          mkdir -p dist
+          gh release download "$TAG" --pattern "FileExplorer-*-macOS-arm64.zip" --dir dist
+          ls -l dist
+
+      - name: Unpack
+        # ditto, not unzip: the zip carries AppleDouble sidecars for the
+        # extended attributes, and unzip leaves them inside the bundle as
+        # ._* files, which makes the signature check fail on a perfectly
+        # good release. ditto restores the attributes and leaves no sidecars,
+        # exactly like Finder does.
+        run: |
+          cd dist
+          ZIP=$(ls FileExplorer-*-macOS-arm64.zip | head -1)
+          ditto -x -k "$ZIP" .
+          APP="File Explorer.app"
+          test -d "$APP" || { echo "no app in the zip" >&2; exit 1; }
+          if find "$APP" -name '._*' | grep -q .; then
+            echo "AppleDouble sidecars left inside the bundle" >&2; exit 1
+          fi
+          echo "APP=$APP" >> "$GITHUB_ENV"
+
+      - name: Verify the Developer ID signature
+        # A strict verify fails on a broken or ad-hoc signature: the release
+        # must carry a real Developer ID identity, not the ad-hoc one that
+        # build.sh leaves behind.
+        run: |
+          codesign --verify --strict --verbose=4 "$APP"
+          codesign -dv --verbose=4 "$APP" 2>&1 | tee signature.txt
+          grep -q "Authority=Developer ID Application" signature.txt || {
+            echo "not signed with a Developer ID certificate" >&2; exit 1; }
+
+      - name: Verify the notarization ticket and the staple
+        run: |
+          xcrun stapler validate "$APP"
+
+      - name: Ask Gatekeeper
+        # The same question the user's Mac asks the first time the app is
+        # opened. Not fatal: the answer depends on the runner's quarantine
+        # state, the signature checks above are the hard requirement.
+        run: |
+          spctl --assess --type execute --verbose=4 "$APP" || {
+            echo "::warning::Gatekeeper did not accept the app on this runner"; }
+
+      - name: Self-test on the shipped binary
+        # The artifact users download, not a fresh compile of the source.
+        env:
+          WINEXP_SELFTEST: "1"
+        run: |
+          "$APP/Contents/MacOS/FileExplorer"
+
+      - name: Keep the signature report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-signature-${{ github.event.release.tag_name }}
+          path: dist/signature.txt

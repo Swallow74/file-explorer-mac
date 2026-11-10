@@ -30,6 +30,11 @@ echo "==> Signing as: $IDENTITY"
 
 FE_VERSION="$VERSION" ./build.sh
 
+# The self-test runs before signing: a failing check must stop the release
+# here, while it still costs nothing. After notarizing it would be too late.
+echo "==> Self-test"
+WINEXP_SELFTEST=1 "$APP/Contents/MacOS/FileExplorer"
+
 # No nested code (one binary, no frameworks), so --deep is not needed.
 codesign --force --options runtime --timestamp \
     --sign "$IDENTITY" "$APP"

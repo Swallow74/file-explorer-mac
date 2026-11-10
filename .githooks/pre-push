@@ -1,0 +1,28 @@
+#!/bin/bash
+# Pre-push gate: builds the app and runs the self-test suite before any
+# commit reaches GitHub. Same 171 checks the CI used to run on every push,
+# in 36 seconds instead of 15 minutes of queue.
+#
+# Skip with:  git push --no-verify
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+if [ "$FE_SKIP_PREPUSH" = "1" ]; then
+    echo "pre-push: skipped (FE_SKIP_PREPUSH=1)"
+    exit 0
+fi
+
+# Only the branches that carry the release history are gated.
+case "$(git rev-parse --abbrev-ref HEAD)" in
+    main|master) ;;
+    *) echo "pre-push: not on main, skipping the gate"; exit 0 ;;
+esac
+
+echo "pre-push: running the local gate (build + self-test)…"
+if ! ./Tools/check.sh; then
+    echo >&2
+    echo "pre-push: the self-test failed — this push is blocked." >&2
+    echo "pre-push: fix it, or push with --no-verify if you know better." >&2
+    exit 1
+fi
+echo "pre-push: OK"
