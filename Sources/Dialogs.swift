@@ -226,6 +226,13 @@ struct ConfirmDeleteDialog: View {
     let onConfirm: () -> Void
     let onCancel: () -> Void
 
+    private static func summary(_ f: FileItem) -> String {
+        var lines: [String] = [f.typeName]
+        lines.append(f.sizeText.isEmpty ? "" : tr("Size:") + " " + f.sizeText)
+        lines.append(tr("Date modified:") + " " + f.modifiedText)
+        return lines.joined(separator: "\n")
+    }
+
     var body: some View {
         WinDialog(title: permanent ? tr("Delete File") : tr("Delete"), width: 440, onClose: onCancel) {
             HStack(alignment: .top, spacing: 16) {
@@ -237,7 +244,7 @@ struct ConfirmDeleteDialog: View {
                     if let f = items.first, items.count == 1 {
                         Text(f.displayName)
                             .font(Win.body(12, weight: .semibold)).foregroundStyle(Win.text)
-                        Text(f.typeName + "\n" + (f.sizeText.isEmpty ? "" : tr("Size:") + " " + f.sizeText) + "\n" + tr("Date modified:") + " " + f.modifiedText)
+                        Text(Self.summary(f))
                             .font(Win.body(11)).foregroundStyle(Win.textSecondary)
                     }
                 }
