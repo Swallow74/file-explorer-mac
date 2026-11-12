@@ -75,7 +75,7 @@ jobs:
           if find "$APP" -name '._*' | grep -q .; then
             echo "AppleDouble sidecars left inside the bundle" >&2; exit 1
           fi
-          echo "APP=$APP" >> "$GITHUB_ENV"
+          echo "APP=$PWD/$APP" >> "$GITHUB_ENV"
 
       - name: Verify the Developer ID signature
         # A strict verify fails on a broken or ad-hoc signature: the release
