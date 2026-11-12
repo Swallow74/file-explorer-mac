@@ -344,6 +344,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Progress dialog** modelled on the Windows 11 copy window: percentage, live speed graph, name, time left and item count.
 - **APFS clones** for same-volume copies: instant at any size, free until modified. exFAT and network mounts fall back to the byte copy.
 - **Eject** for external drives and network shares, from the context menu and the sidebar.
+- **Paste into a folder**: right-click a folder > *Paste* drops the clipboard files (or a cut) inside it; *Copy* on a folder copies the whole folder.
 - **Delete on network shares**: volumes without a Recycle Bin (SMB/NAS) offer a permanent delete instead of failing silently.
 - Safer transfers: a failed cross-volume move records its orphaned copy so undo can remove it, same-volume moves advance the bar per item, cancel no longer stalls the main thread, copy collisions always get the `- Copy` suffix.
 - Undo and redo are honest: per-item failures are reported, only what really reverted is redoable, undoing *New folder* restores the same items, and every tab showing a touched folder refreshes.

@@ -96,6 +96,18 @@ enum ContextMenus {
                 NSSharingService(named: .sendViaAirDrop)?.perform(withItems: sel.map(\.url))
             })
         }
+        if isFolder, !ex.isInsideArchive {
+            let dir = sel[0].url
+            entries.append(MenuEntry(title: tr("Paste"), icon: .paste,
+                                     enabled: !Clipboard.urls.isEmpty) {
+                let urls = Clipboard.urls
+                guard !urls.isEmpty else { NSSound.beep(); return }
+                let cutting = Clipboard.isCut
+                ex.transfer(kind: cutting ? .move : .copy, sources: urls, to: dir) { landed in
+                    if cutting && landed { Clipboard.clearCut() }
+                }
+            })
+        }
         entries.append(MenuEntry(title: tr("Copy as path"), icon: .copy,
                                  shortcut: Settings.shared.display(for: .copyPath)) { ex.copyPath() })
         entries.append(MenuEntry(title: tr("Compress to ZIP file"), icon: .compress) { ex.zipSelection() })
