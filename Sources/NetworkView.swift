@@ -299,7 +299,7 @@ struct HostTile: View {
         .background(WinRR(radius: 4).fill(hovering ? Win.subtleHover : .clear))
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture { ex.go(to: .networkHost(host.key)) }
+        .onTapGesture(count: 2) { ex.go(to: .networkHost(host.key)) }
         // The window's right-click router owns every press inside the
         // content pane, so a SwiftUI .contextMenu here would never open:
         // register with the router instead, like the file tiles do.
@@ -361,7 +361,7 @@ struct ShareTile: View {
         .background(WinRR(radius: 4).fill(hovering ? Win.subtleHover : .clear))
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture(perform: open)
+        .onTapGesture(count: 2, perform: open)
     }
 
     private func open() {

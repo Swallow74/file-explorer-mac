@@ -149,7 +149,7 @@ struct QuickTile: View {
         .dropHighlight(dropTargeted)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture { if let u = place.url { ex.go(to: u) } }
+        .onTapGesture(count: 2) { if let u = place.url { ex.go(to: u) } }
         .onDrop(of: [.fileURL], isTargeted: place.url != nil ? $dropTargeted : nil) { providers in
             guard let u = place.url else { return false }
             dropTargeted = false

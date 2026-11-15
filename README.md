@@ -346,6 +346,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Eject** for external drives and network shares, from the context menu and the sidebar.
 - **Paste into a folder**: right-click a folder > *Paste* drops the clipboard files (or a cut) inside it; *Copy* on a folder copies the whole folder.
 - **Delete on network shares**: volumes without a Recycle Bin (SMB/NAS) offer a permanent delete instead of failing silently.
+- Quick access tiles and network hosts/shares open with a double-click, like folders (a single click used to enter).
 - Cancelling a cross-volume move or a copy keeps the original and removes the partial copy (the original used to be deleted).
 - Network copies: 4 MB blocks, one progress update per block, smoothed speed graph and ETA that falls back to the overall average on slow shares.
 - Safer transfers: a failed cross-volume move records its orphaned copy so undo can remove it, same-volume moves advance the bar per item, cancel no longer stalls the main thread, copy collisions always get the `- Copy` suffix.
