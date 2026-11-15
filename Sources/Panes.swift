@@ -279,6 +279,12 @@ struct SpeedGraph: View {
             ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width * fraction, height: size.height)),
                      with: .color(Win.accent.opacity(0.10)))
             guard samples.count > 1 else { return }
+            // Smooth (3-wide) so one burst can't flatten everything else
+            // into the bottom pixels, and scale by the smoothed peak.
+            let samples: [Double] = self.samples.indices.map { i in
+                let w = self.samples[max(0, i - 1)...min(self.samples.count - 1, i + 1)]
+                return w.reduce(0, +) / Double(w.count)
+            }
             let peak = max(samples.max() ?? 1, 1) * 1.2
             let step = size.width / 59
             let x0 = size.width * fraction - step * CGFloat(samples.count - 1)

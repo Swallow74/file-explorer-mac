@@ -35,8 +35,13 @@ struct TransferJob: Identifiable {
 
     /// Average of the last couple of seconds, steadier than the last sample.
     var currentSpeed: Double {
-        let recent = speeds.suffix(4)
-        return recent.isEmpty ? 0 : recent.reduce(0, +) / Double(recent.count)
+        let recent = speeds.suffix(10)
+        let avg = recent.isEmpty ? 0 : recent.reduce(0, +) / Double(recent.count)
+        if avg > 1 { return avg }
+        // Slow share: no bytes landed in the window. Fall back to the overall
+        // average so the ETA doesn't flick back to "Calculating…".
+        guard let startedAt, bytesDone > 0 else { return 0 }
+        return Double(bytesDone) / max(Date().timeIntervalSince(startedAt), 0.5)
     }
 
     var remainingText: String {
@@ -360,21 +365,21 @@ final class TransferQueue: ObservableObject {
         }
         defer { try? output.close() }
 
-        let chunkSize = 1 << 20          // 1 MB
-        var sinceUpdate: Int64 = 0
+        // Big blocks: small SMB writes are what makes network copies crawl.
+        // One progress update per chunk keeps the speed samples smooth.
+        let chunkSize = 4 << 20          // 4 MB
         while true {
             if isCancelled(id) { return }
-            let chunk = input.readData(ofLength: chunkSize)
-            if chunk.isEmpty { break }
-            output.write(chunk)
-            job.bytesDone += Int64(chunk.count)
-            sinceUpdate += Int64(chunk.count)
-            // Throttle so the UI isn't flooded on fast disks.
-            if sinceUpdate > 4 << 20 {
+            let more: Bool = autoreleasepool {
+                let chunk = input.readData(ofLength: chunkSize)
+                if chunk.isEmpty { return false }
+                output.write(chunk)
+                job.bytesDone += Int64(chunk.count)
                 let done = job.bytesDone
-                sinceUpdate = 0
                 update(id) { $0.bytesDone = done }
+                return true
             }
+            if !more { break }
         }
 
         job.filesDone += 1
