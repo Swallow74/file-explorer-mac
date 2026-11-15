@@ -268,6 +268,13 @@ final class TransferQueue: ObservableObject {
                         }
                     } else {
                         try copyTree(source, to: target, job: &job)
+                        // copyTree returns quietly on cancel: the copy is partial,
+                        // so the original must stay and the leftovers go.
+                        if isCancelled(job.id) {
+                            try? fm.removeItem(at: target)
+                            job.state = .cancelled
+                            return job
+                        }
                         do {
                             try fm.removeItem(at: source)
                             job.moved.append((source, target))
@@ -309,6 +316,11 @@ final class TransferQueue: ObservableObject {
                         }
                     } else {
                         try copyTree(source, to: target, job: &job)
+                        if isCancelled(job.id) {
+                            try? fm.removeItem(at: target)   // partial copy
+                            job.state = .cancelled
+                            return job
+                        }
                         job.created.append(target)
                     }
                 }
