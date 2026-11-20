@@ -201,6 +201,8 @@ enum SelfTest {
               settings.display(for: .copy) == "Ctrl+C" && settings.display(for: .newFolder) == "Ctrl+Shift+N")
 
         // Pinning
+        check("Applications is a default pin",
+              Places.defaultPinned.contains { $0.url?.path == Places.applications.path })
         let pinCount = Places.quickAccess.count
         settings.pin(sub)
         check("pinning adds a Quick access entry", Places.quickAccess.count == pinCount + 1)

@@ -288,8 +288,11 @@ enum Places {
     static let music     = std(.musicDirectory, "Music")
     static let videos    = std(.moviesDirectory, "Movies")
     static let trash     = url(".Trash")
+    /// Where macOS keeps the installed apps; Windows has no equivalent folder.
+    static let applications = URL(fileURLWithPath: "/Applications")
 
-    /// The folders Windows pins to Quick access out of the box.
+    /// The folders Windows pins to Quick access out of the box, plus the
+    /// macOS counterpart of Program Files.
     static var defaultPinned: [Place] {
         [
             Place(id: "desktop", title: tr("Desktop"), icon: .desktop, url: desktop, accent: .blue),
@@ -298,6 +301,8 @@ enum Places {
             Place(id: "pictures", title: tr("Pictures"), icon: .picture, url: pictures, accent: .blue),
             Place(id: "music", title: tr("Music"), icon: .music, url: music, accent: .orange),
             Place(id: "videos", title: tr("Videos"), icon: .video, url: videos, accent: .purple),
+            Place(id: "applications", title: tr("Applications"), icon: .applications,
+                  url: applications, accent: .blue),
         ]
     }
 
@@ -329,6 +334,7 @@ enum Places {
         case .picture: return .blue
         case .music: return .orange
         case .video: return .purple
+        case .applications: return .blue
         default: return .neutral
         }
     }
@@ -349,6 +355,7 @@ enum Places {
         if url.path == home.path { return NSUserName() }
         if url.path == "/" { return tr("Local Disk (C:)") }
         if url.path == trash.path { return tr("Recycle Bin") }
+        if url.path == applications.path { return tr("Applications") }
         if url.resolvingSymlinksInPath().path == videos.path { return tr("Videos") }
         return url.lastPathComponent
     }
@@ -363,6 +370,7 @@ enum Places {
         case videos.path: return .video
         case trash.path: return .recycleBin
         case home.path: return .home
+        case applications.path: return .applications
         default: return .folderOutline
         }
     }

@@ -117,6 +117,7 @@ enum Icon: String {
     case minimize, maximize, restore, close, tabClose, plus
     // Sidebar / places
     case home, gallery, cloud, desktop, download, document, picture, music, video
+    case applications
     case thisPC, network, recycleBin, folderOutline, newFolder, drive
     // Misc
     case pin, star, people, clock, gridView, listView, checkmark, sortAsc, sortDesc
@@ -187,6 +188,8 @@ enum Icon: String {
         .picture:     ("R 1.9 3.2 12.2 9.6 1.3 M1.9 11.1 L5.5 7.6 L8 9.9 L10.2 8 L14.1 11.5 O 10.6 6.2 1.1", ""),
         .music:       ("M6 12.1 V3.6 L12.4 2.2 V10.6 O 4.3 12.2 1.75 O 10.7 10.8 1.75", ""),
         .video:       ("R 1.8 3.4 12.4 9.2 1.3", "M6.4 6.1 L10.6 8 L6.4 9.9 Z"),
+        // A grid of app tiles: one tall on the left, two stacked on the right.
+        .applications:("R 2.2 2.6 5.2 10.8 1.3 R 8.8 2.6 5.0 5.0 1.1 R 8.8 8.8 5.0 4.6 1.1", ""),
         .thisPC:      ("R 1.8 3 12.4 8.3 1.1 M6.1 11.3 V13.3 M9.9 11.3 V13.3 M4.6 13.4 H11.4", ""),
         .drive:       ("R 1.8 5.6 12.4 5.6 1.2 M4.2 8.4 H4.3 M6.2 8.4 H11.6", ""),
         .network:     ("O 8 8 5.8 M2.2 8 H13.8 M8 2.2 C10.5 4.7 10.5 11.3 8 13.8 C5.5 11.3 5.5 4.7 8 2.2", ""),
