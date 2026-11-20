@@ -225,6 +225,9 @@ enum SelfTest {
             settings.moveQuickAccess(from: last, to: first)
             check("an entry dropped on another takes its place",
                   Places.quickAccess.first?.url?.path == last)
+            check("the gap above the favourites follows the first entry "
+                  + "[\(Places.favouritesHeaderID ?? "nil") vs \(Places.quickAccess.first?.id ?? "nil")]",
+                  Places.favouritesHeaderID == Places.quickAccess.first?.id)
             settings.moveQuickAccess(last, by: 1)
             check("and an entry can be moved down",
                   Places.quickAccess.dropFirst().first?.url?.path == last)

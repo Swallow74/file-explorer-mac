@@ -132,10 +132,14 @@ struct NavPane: View {
                 case nil: return p.url.map { .folder($0) }
                 }
             }()
-            let spacer = (p.id == "desktop") || (p.id == "thispc")
+            // The favourites are separated from Home and Gallery, and This PC
+            // from them: the gap belongs to the first favourite, wherever the
+            // user dragged it, and to This PC.
+            let spacer = p.id == "thispc" || p.id == Places.favouritesHeaderID
             out.append(NavNode(id: p.id, title: p.title, icon: p.icon, accent: p.accent,
                                location: loc, url: p.url, level: 0,
-                               expandable: p.special != .home && p.special != .network, pinned: p.special == nil && !p.id.hasPrefix("cloud:"),
+                               expandable: p.special != .home && p.special != .network,
+                               pinned: Places.isFavourite(p),
                                spacerAbove: spacer && i > 0))
             if ex.navExpanded.contains(p.id) {
                 if p.special == .thisPC {

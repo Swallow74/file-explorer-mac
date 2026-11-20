@@ -310,6 +310,19 @@ enum Places {
         Set(defaultPinned.compactMap { $0.url?.path })
     }
 
+    /// The Quick access entries: the folders that can be pinned, unpinned and
+    /// dragged around.
+    static func isFavourite(_ p: Place) -> Bool {
+        p.special == nil && !p.id.hasPrefix("cloud:")
+    }
+
+    /// The entry the favourites block starts with. The gap that separates the
+    /// block from Home and Gallery goes above this one, so it travels with the
+    /// block when the user drags another entry to the top.
+    static var favouritesHeaderID: String? {
+        sidebar.first(where: isFavourite)?.id
+    }
+
     /// Default pins minus the ones the user removed, plus the ones they added,
     /// in the order the user arranged them.
     static var quickAccess: [Place] {

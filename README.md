@@ -311,7 +311,7 @@ Two decisions worth calling out:
 WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 ```
 
-Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning and the Quick access order (including the payload of a sidebar drag), folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **179 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
+Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning and the Quick access order (including the payload of a sidebar drag), folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **180 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
 
 The suite runs **locally**, before a commit reaches GitHub:
 
@@ -399,7 +399,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - The interface is translated into 16 languages, with a language picker in Settings, automatic detection of the macOS language and an English fallback.
 
 **Tests**
-- The self-test suite grew from 49 to more than 179 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
+- The self-test suite grew from 49 to more than 180 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
 
 Ideas and behaviours borrowed from other open-source Mac explorers (MacXplorer, MaXplorer, MacExplorer, explorer-macos) were **reimplemented from scratch**; no code from GPL projects is included.
 
