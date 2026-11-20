@@ -1,5 +1,35 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
+
+extension UTType {
+    /// Payload of a Quick access entry dragged to a new position in the pane.
+    /// A private type, so it never mixes with the file drags that move items
+    /// into a folder.
+    static let quickAccess = UTType(exportedAs: "com.winexplorer.mac.quick-access",
+                                    conformingTo: .data)
+}
+
+/// Lets a Quick access entry be dragged to a new position in the pane.
+struct QuickAccessDrag: ViewModifier {
+    let path: String?
+
+    func body(content: Content) -> some View {
+        if let path {
+            content.onDrag {
+                let provider = NSItemProvider()
+                provider.registerDataRepresentation(forTypeIdentifier: UTType.quickAccess.identifier,
+                                                   visibility: .ownProcess) { completion in
+                    completion(Data(path.utf8), nil)
+                    return nil
+                }
+                return provider
+            }
+        } else {
+            content
+        }
+    }
+}
 
 struct NavNode: Identifiable {
     let id: String
@@ -198,7 +228,16 @@ struct NavRow: View {
         .onTapGesture {
             if let loc = node.location { ex.go(to: loc) }
         }
-        .onDrop(of: [.fileURL], isTargeted: node.url != nil ? $dropTargeted : nil) { providers in
+        .modifier(QuickAccessDrag(path: node.pinned ? node.url?.path : nil))
+        .onDrop(of: [.fileURL, .quickAccess], isTargeted: node.url != nil ? $dropTargeted : nil) { providers in
+            // A Quick access entry dropped on another one takes its place.
+            if let p = DropHandler.quickAccessProvider(providers) {
+                DropHandler.quickAccessPath(from: p) { from in
+                    guard let to = node.url?.path else { return }
+                    Settings.shared.moveQuickAccess(from: from, to: to)
+                }
+                return true
+            }
             guard let dest = node.url else { return false }
             dropTargeted = false
             return DropHandler.handle(providers: providers, into: dest, ex: ex)
@@ -226,6 +265,17 @@ struct NavRow: View {
                                  icon: pinned ? .unpin : .pin) {
             if pinned { settings.unpin(url) } else { settings.pin(url) }
         })
+        // Only the Quick access entries can be moved around.
+        if node.pinned, let index = Places.quickAccess.firstIndex(where: { $0.url?.path == url.path }) {
+            let last = Places.quickAccess.count - 1
+            entries.append(.sep())
+            entries.append(MenuEntry(title: tr("Move up"), enabled: index > 0) {
+                settings.moveQuickAccess(url.path, by: -1)
+            })
+            entries.append(MenuEntry(title: tr("Move down"), enabled: index < last) {
+                settings.moveQuickAccess(url.path, by: 1)
+            })
+        }
         entries.append(MenuEntry(title: tr("Change icon…"), icon: .palette) {
             if let i = Loader.item(at: url) { ex.sheet = .folderIcon(i) }
         })
@@ -262,6 +312,29 @@ enum DropHandler {
               (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
         else { return }
         Settings.shared.pin(url)
+    }
+
+    /// True when the drag carries a Quick access entry rather than files.
+    static func isQuickAccessDrag(_ providers: [NSItemProvider]) -> Bool {
+        quickAccessProvider(providers) != nil
+    }
+
+    /// The Quick access entry carried by a drag, if there is one.
+    static func quickAccessProvider(_ providers: [NSItemProvider]) -> NSItemProvider? {
+        providers.first { $0.hasItemConformingToTypeIdentifier(UTType.quickAccess.identifier) }
+    }
+
+    /// Hands the dragged path back on the main queue, ready to reorder the list.
+    static func quickAccessPath(from provider: NSItemProvider, _ body: @escaping (String) -> Void) {
+        provider.loadDataRepresentation(forTypeIdentifier: UTType.quickAccess.identifier) { data, _ in
+            guard let data, let path = quickAccessPath(from: data) else { return }
+            DispatchQueue.main.async { body(path) }
+        }
+    }
+
+    /// The path carried by a Quick access drag payload.
+    static func quickAccessPath(from data: Data) -> String? {
+        String(data: data, encoding: .utf8)
     }
 
     static func handle(providers: [NSItemProvider], into dest: URL, ex: Explorer) -> Bool {

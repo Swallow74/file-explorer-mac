@@ -147,6 +147,8 @@
 "Open in new window" = "Openen in nieuw venster";
 "Open with" = "Openen met";
 "Unpin from Quick access" = "Losmaken van Snelle toegang";
+"Move up" = "Omhoog verplaatsen";
+"Move down" = "Omlaag verplaatsen";
 "Change icon…" = "Pictogram wijzigen…";
 "Eject" = "Uitwerpen";
 "Rename %@ items…" = "%@ item hernoemen…|%@ items hernoemen…";

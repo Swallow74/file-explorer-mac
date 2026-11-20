@@ -147,6 +147,8 @@
 "Open in new window" = "Yeni pencerede aç";
 "Open with" = "Birlikte aç";
 "Unpin from Quick access" = "Hızlı erişimden kaldır";
+"Move up" = "Yukarı taşı";
+"Move down" = "Aşağı taşı";
 "Change icon…" = "Simgeyi değiştir…";
 "Eject" = "Çıkar";
 "Rename %@ items…" = "%@ öğeyi yeniden adlandır…|%@ öğeyi yeniden adlandır…";

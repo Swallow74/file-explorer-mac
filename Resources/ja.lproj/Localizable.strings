@@ -147,6 +147,8 @@
 "Open in new window" = "新規ウインドウで開く";
 "Open with" = "このアプリケーションで開く";
 "Unpin from Quick access" = "クイックアクセスからピン留めを外す";
+"Move up" = "上へ移動";
+"Move down" = "下へ移動";
 "Change icon…" = "アイコンを変更…";
 "Eject" = "取り出す";
 "Rename %@ items…" = "%@ 個の項目の名前を変更…";

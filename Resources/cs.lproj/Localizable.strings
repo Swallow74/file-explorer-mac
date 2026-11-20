@@ -147,6 +147,8 @@
 "Open in new window" = "Otevřít v novém okně";
 "Open with" = "Otevřít v aplikaci";
 "Unpin from Quick access" = "Odepnout z Rychlého přístupu";
+"Move up" = "Přesunout nahoru";
+"Move down" = "Přesunout dolů";
 "Change icon…" = "Změnit ikonu…";
 "Eject" = "Vysunout";
 "Rename %@ items…" = "Přejmenovat %@ položku…|Přejmenovat %@ položky…|Přejmenovat %@ položek…";

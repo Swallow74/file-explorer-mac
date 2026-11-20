@@ -147,6 +147,8 @@
 "Open in new window" = "Åbn i nyt vindue";
 "Open with" = "Åbn med";
 "Unpin from Quick access" = "Frigør fra Hurtig adgang";
+"Move up" = "Flyt op";
+"Move down" = "Flyt ned";
 "Change icon…" = "Skift ikon…";
 "Eject" = "Skub ud";
 "Rename %@ items…" = "Omdøb %@ element…|Omdøb %@ elementer…";

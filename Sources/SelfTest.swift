@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 
 /// Exercises the key bindings and file operations against a throwaway folder.
 /// Run with WINEXP_SELFTEST=1; the app prints results and exits.
@@ -215,6 +216,56 @@ enum SelfTest {
         settings.hiddenPlaces.remove(Places.downloads.path)
         check("and restored",
               Places.quickAccess.contains { $0.url?.path == Places.downloads.path })
+
+        // Reordering the Quick access
+        let savedOrder = settings.quickAccessOrder
+        let entries = Places.quickAccess
+        if entries.count >= 2, let first = entries[0].url?.path,
+           let last = entries[entries.count - 1].url?.path {
+            settings.moveQuickAccess(from: last, to: first)
+            check("an entry dropped on another takes its place",
+                  Places.quickAccess.first?.url?.path == last)
+            settings.moveQuickAccess(last, by: 1)
+            check("and an entry can be moved down",
+                  Places.quickAccess.dropFirst().first?.url?.path == last)
+            check("the order is remembered",
+                  settings.quickAccessOrder.first == Places.quickAccess.first?.url?.path)
+        }
+        settings.quickAccessOrder = savedOrder
+
+        // The drag payload that carries a Quick access entry
+        let payload = NSItemProvider()
+        payload.registerDataRepresentation(forTypeIdentifier: UTType.quickAccess.identifier,
+                                           visibility: .ownProcess) { completion in
+            completion(Data("/tmp/dragged".utf8), nil)
+            return nil
+        }
+        check("a Quick access drag is recognised as one",
+              DropHandler.isQuickAccessDrag([payload]))
+        check("a file drag is not taken for a Quick access one",
+              !DropHandler.isQuickAccessDrag(
+                  [NSItemProvider(object: URL(fileURLWithPath: "/tmp/file") as NSURL)]))
+        // The completion of a drop arrives on the main queue, which the
+        // self-test cannot drain from inside its own main-queue block, so the
+        // payload is checked by decoding it the way the drop handler does.
+        check("the dragged path is handed back",
+              DropHandler.quickAccessPath(from: Data("/tmp/dragged".utf8)) == "/tmp/dragged")
+
+        // An unpinned entry keeps its place in the stored order
+        let pinnedBackup = settings.pinned
+        let hiddenBackup = settings.hiddenPlaces
+        let order = Places.quickAccess.compactMap { $0.url?.path }
+        if order.count >= 3 {
+            let a = order[0], b = order[1], c = order[2]
+            settings.quickAccessOrder = [a, b, c]
+            settings.unpin(URL(fileURLWithPath: b))
+            settings.moveQuickAccess(from: c, to: a)
+            settings.pin(URL(fileURLWithPath: b))
+            check("an unpinned entry comes back between its neighbours",
+                  Places.quickAccess.dropFirst().first?.url?.path == b)
+        }
+        settings.pinned = pinnedBackup
+        settings.hiddenPlaces = hiddenBackup
 
         // Folder icons
         settings.setStyle(FolderStyle(icon: Icon.star.rawValue, tint: "4CC2FF"), for: sub)

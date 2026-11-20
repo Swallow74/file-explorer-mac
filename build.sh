@@ -103,6 +103,15 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <array><string>_smb._tcp</string><string>_afpovertcp._tcp</string></array>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>File Explorer needs access to show photos in the Gallery.</string>
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>  <string>com.winexplorer.mac.quick-access</string>
+            <key>UTTypeDescription</key> <string>File Explorer Quick access entry</string>
+            <key>UTTypeConformsTo</key>   <array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key> <dict/>
+        </dict>
+    </array>
 </dict>
 </plist>
 PLIST

@@ -205,7 +205,7 @@ The gear at the right end of the command bar, also in the `...` menu, the backgr
 
 - **Appearance.** System, Light or Dark, **language** (follow the system or pick one; it applies at once), eight accent colours, and toggles for compact view, the three panes, item check boxes, extensions and hidden items.
 - **Shortcuts.** Re-map any command. Click a shortcut, press the keys. If the combination is taken it is moved off the other command and you are told which. Per-command and global reset.
-- **Quick access.** Everything pinned to the sidebar: the six Windows defaults plus **Applications**, the folder macOS keeps its apps in. Unpin any of it, restore what you unpinned, add folders.
+- **Quick access.** Everything pinned to the sidebar: the six Windows defaults plus **Applications**, the folder macOS keeps its apps in. Unpin any of it, restore what you unpinned, add folders, and drag an entry onto another to change the order (or use *Move up* / *Move down*).
 - **Folder icons.** The folders you have customised, with a reset for each.
 
 **Pinning.** Right-click any folder, in the list or the sidebar, then choose *Pin to Quick access*.
@@ -311,7 +311,7 @@ Two decisions worth calling out:
 WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 ```
 
-Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning, folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **172 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
+Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename (including the second-click rename), delete, restore, navigation, tabs, view modes, type-ahead, sorting, grouping and section folding, search, shortcut re-mapping, pinning and the Quick access order (including the payload of a sidebar drag), folder icons, right-click routing and the safety of archive extraction against crafted entry names. the language layer (every shipped language loads, keeps its placeholders and plural forms) and **179 checks** in all. The suite is deterministic: it never depends on the order background transfers land in.
 
 The suite runs **locally**, before a commit reaches GitHub:
 
@@ -331,6 +331,7 @@ Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_LANG=<code
 - **The Recycle Bin is the macOS Trash**, so deleted items land where the rest of the system expects them. *Restore* only knows the origin of items File Explorer itself deleted: the Finder keeps its own "Put Back" records private.
 - **Drives.** The boot volume is labelled `Local Disk (C:)`, other locally mounted volumes appear under This PC by their own names, and network-mounted volumes appear only under Network.
 - **Quick access starts with Applications too.** Windows has no `/Applications`; the Mac does, so it is pinned in the sidebar next to the six Windows defaults, with a glyph of its own.
+- **The favourites can be reordered.** The Finder's sidebar list is fixed; here you drag a Quick access entry onto another one, or use *Move up* / *Move down*, and the order is remembered.
 - **"Account disconnected"** reports what is actually on the Mac. It reads *iCloud Drive* or *OneDrive* when either is present, and *Account disconnected* when neither is.
 - Archive browsing is read-only. Dropping files into a zip is not supported.
 - **Undo history is per pane.** Each pane undoes its own operations; Windows keeps one history per window.
@@ -364,6 +365,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Nav bar matches Windows 11**: a `⌄` history button between forward and up opens the tab's whole navigation history with the current page checked, and Refresh now sits after the address bar (before the search box) instead of beside the arrows.
 - **Sidebar favourites**: drag a folder onto the navigation pane (not onto a row) to pin it, as in the Finder; right-click > *Unpin from Quick access* removes it; the sidebar updates at once.
 - **Applications in the favourites**: `/Applications` is pinned by default after the six Windows defaults, with its own app-grid glyph in the sidebar, in the Home tiles, in the tab and in the breadcrumb. It can be unpinned like any other folder.
+- **Quick access in your order**: drag an entry onto another to move it there, or use *Move up* / *Move down* from its context menu. The order is stored and shows in the sidebar and in the Home tiles; an entry that is unpinned and pinned again comes back where it was.
 - **Group by** is real: Name, Type, Date modified (Today, Yesterday, Earlier this week, and so on) and Size (Tiny to Gigantic), with collapsible section headers in Details, as in Explorer. Arrow keys follow the on-screen order, including folded groups.
 - **Cloud drives in the sidebar**: iCloud Drive and every provider under `~/Library/CloudStorage` (OneDrive, each Google Drive account, Dropbox...) get their own entry under Gallery.
 - **Navigation pane follows you**: the folder tree expands on its own down the path you are viewing, and is cached so it does not flicker or rescan.
@@ -397,7 +399,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - The interface is translated into 16 languages, with a language picker in Settings, automatic detection of the macOS language and an English fallback.
 
 **Tests**
-- The self-test suite grew from 49 to more than 171 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
+- The self-test suite grew from 49 to more than 179 checks, covering grouping, modifier capture at press time, hostile archive names, self-copy refusal and the tab and transfer paths.
 
 Ideas and behaviours borrowed from other open-source Mac explorers (MacXplorer, MaXplorer, MacExplorer, explorer-macos) were **reimplemented from scratch**; no code from GPL projects is included.
 

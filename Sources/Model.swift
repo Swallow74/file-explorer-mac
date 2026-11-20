@@ -310,7 +310,8 @@ enum Places {
         Set(defaultPinned.compactMap { $0.url?.path })
     }
 
-    /// Default pins minus the ones the user removed, plus the ones they added.
+    /// Default pins minus the ones the user removed, plus the ones they added,
+    /// in the order the user arranged them.
     static var quickAccess: [Place] {
         let settings = Settings.shared
         var list = defaultPinned.filter { p in
@@ -323,7 +324,7 @@ enum Places {
             list.append(Place(id: "pin:\(path)", title: displayName(for: url),
                               icon: icon(for: url), url: url, accent: accentFor(url)))
         }
-        return list
+        return settings.sortedByUserOrder(list)
     }
 
     private static func accentFor(_ url: URL) -> PlaceAccent {

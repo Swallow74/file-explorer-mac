@@ -147,6 +147,8 @@
 "Open in new window" = "Abrir em nova janela";
 "Open with" = "Abrir com";
 "Unpin from Quick access" = "Desafixar do Acesso rápido";
+"Move up" = "Mover para cima";
+"Move down" = "Mover para baixo";
 "Change icon…" = "Alterar ícone…";
 "Eject" = "Ejetar";
 "Rename %@ items…" = "Renomear %@ item…|Renomear %@ itens…";

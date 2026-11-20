@@ -147,6 +147,8 @@
 "Open in new window" = "在新窗口中打开";
 "Open with" = "打开方式";
 "Unpin from Quick access" = "从快速访问取消固定";
+"Move up" = "上移";
+"Move down" = "下移";
 "Change icon…" = "更改图标…";
 "Eject" = "推出";
 "Rename %@ items…" = "重命名 %@ 个项目…";

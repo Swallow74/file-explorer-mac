@@ -320,6 +320,9 @@ final class Settings: ObservableObject {
     @Published var folderStyles: [String: FolderStyle] { didSet { save() } }
     @Published var pinned: [String] { didSet { save() } }
     @Published var hiddenPlaces: Set<String> { didSet { save() } }
+    /// The order the user gave the Quick access entries, by path. Empty means
+    /// the built-in order: the Windows defaults, then the folders pinned later.
+    @Published var quickAccessOrder: [String] { didSet { save() } }
 
     static var accents: [AccentOption] { [
         AccentOption(id: "blue",    name: tr("Windows blue"), dark: "60CDFF", light: "0067C0"),
@@ -349,6 +352,7 @@ final class Settings: ObservableObject {
         folderStyles = Settings.decode([String: FolderStyle].self, d.data(forKey: "folderStyles")) ?? [:]
         pinned = d.stringArray(forKey: "pinned") ?? []
         hiddenPlaces = Set(d.stringArray(forKey: "hiddenPlaces") ?? [])
+        quickAccessOrder = d.stringArray(forKey: "quickAccessOrder") ?? []
     }
 
     private static func decode<T: Decodable>(_ type: T.Type, _ data: Data?) -> T? {
@@ -364,6 +368,7 @@ final class Settings: ObservableObject {
         d.set(try? JSONEncoder().encode(folderStyles), forKey: "folderStyles")
         d.set(pinned, forKey: "pinned")
         d.set(Array(hiddenPlaces), forKey: "hiddenPlaces")
+        d.set(quickAccessOrder, forKey: "quickAccessOrder")
     }
 
     func applyTheme() {
@@ -458,6 +463,69 @@ final class Settings: ObservableObject {
 
     func togglePin(_ url: URL) {
         if isPinned(url) && !hiddenPlaces.contains(url.path) { unpin(url) } else { pin(url) }
+    }
+
+    // MARK: Quick access order
+
+    /// Sorts the Quick access entries the way the user arranged them. Entries
+    /// with no saved position keep their natural order and go last.
+    func sortedByUserOrder(_ list: [Place]) -> [Place] {
+        guard !quickAccessOrder.isEmpty else { return list }
+        var rank: [String: Int] = [:]
+        for (i, path) in quickAccessOrder.enumerated() { rank[path] = i }
+        func position(_ place: Place) -> Int? {
+            guard let path = place.url?.path else { return nil }
+            return rank[path]
+        }
+        let arranged = list.filter { position($0) != nil }
+            .sorted { (position($0) ?? 0) < (position($1) ?? 0) }
+        let rest = list.filter { position($0) == nil }
+        return arranged + rest
+    }
+
+    /// Moves a Quick access entry just before another one, the way dragging
+    /// one onto the other does.
+    func moveQuickAccess(from path: String, to destination: String) {
+        guard path != destination else { return }
+        var list = Places.quickAccess
+        guard let from = list.firstIndex(where: { $0.url?.path == path }),
+              let to = list.firstIndex(where: { $0.url?.path == destination }) else { return }
+        let entry = list.remove(at: from)
+        // Removing the entry shifted the target when it came before it.
+        list.insert(entry, at: from < to ? to - 1 : to)
+        storeQuickAccessOrder(list)
+    }
+
+    /// Moves a Quick access entry one place up or down.
+    func moveQuickAccess(_ path: String, by offset: Int) {
+        var list = Places.quickAccess
+        guard let i = list.firstIndex(where: { $0.url?.path == path }) else { return }
+        let j = i + offset
+        guard j >= 0, j < list.count else { return }
+        list.swapAt(i, j)
+        storeQuickAccessOrder(list)
+    }
+
+    /// Stores the order the user arranged. The entries that are not visible
+    /// (unpinned) keep their slot, so pinning them again brings them back
+    /// where they were.
+    private func storeQuickAccessOrder(_ list: [Place]) {
+        let visible = list.compactMap { $0.url?.path }
+        let shown = Set(visible)
+        // The hidden paths stay where they are and the visible ones slide into
+        // the order the user just gave them; new pins go at the end.
+        var merged: [String] = []
+        var next = visible.makeIterator()
+        var placed = 0
+        for path in quickAccessOrder {
+            if shown.contains(path) {
+                if let p = next.next() { merged.append(p); placed += 1 }
+            } else {
+                merged.append(path)
+            }
+        }
+        merged.append(contentsOf: visible.dropFirst(placed))
+        quickAccessOrder = merged
     }
 }
 
