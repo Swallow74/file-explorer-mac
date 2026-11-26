@@ -63,11 +63,10 @@ struct StatusBar: View {
     }
 }
 
-/// "AlexTech.ai" link: azure text with a soft glint that sweeps across every few seconds.
-/// The animation only runs during the sweep, so the bar costs nothing the rest of the time.
+/// "AlexTech.ai" link: azure text, brighter on hover. No animation: the
+/// sweeping glint it had kept the main thread redrawing even while idle.
 struct BrandLink: View {
     @Environment(\.colorScheme) private var scheme
-    @State private var phase: CGFloat = 0
     @State private var hover = false
 
     var body: some View {
@@ -77,16 +76,6 @@ struct BrandLink: View {
         Link(destination: URL(string: "https://www.alextech.ai/")!) {
             label
                 .foregroundStyle(azure.opacity(hover ? 1 : 0.88))
-                .overlay {
-                    GeometryReader { g in
-                        LinearGradient(colors: [.clear, .white.opacity(0.95), .clear],
-                                       startPoint: .leading, endPoint: .trailing)
-                            .frame(width: g.size.width * 0.45)
-                            .offset(x: -g.size.width * 0.45 + g.size.width * 1.45 * phase)
-                    }
-                    .mask(label)
-                    .allowsHitTesting(false)
-                }
                 .shadow(color: azure.opacity(hover ? 0.55 : 0.25), radius: hover ? 5 : 3)
                 .padding(.horizontal, 8)
                 .frame(height: 20)
@@ -98,15 +87,6 @@ struct BrandLink: View {
             if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
         }
         .help("https://www.alextech.ai/")
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-                withAnimation(.easeInOut(duration: 1.3)) { phase = 1 }
-                try? await Task.sleep(nanoseconds: 1_400_000_000)
-                var t = Transaction(); t.disablesAnimations = true
-                withTransaction(t) { phase = 0 }
-            }
-        }
     }
 }
 
