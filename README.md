@@ -371,6 +371,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Navigation pane follows you**: the folder tree expands on its own down the path you are viewing, and is cached so it does not flicker or rescan.
 - **User folders resolved through the system**: Desktop, Documents and the others still work when they have been moved or are symlinks.
 - Home and This PC watch `/Volumes`, so an unplugged drive disappears instead of lingering.
+- **No stale folders after idle**: returning to the app or waking the Mac lists the open folder again (a NAS that dropped its session silences the folder watcher), a slow listing can no longer overwrite a newer one, and a file rewritten in place shows its new size and date.
 - **Tabs**: right-click menu (duplicate, paste into tab, close), drop files onto a tab to land them in its folder, `Ctrl+Shift+T` reopens the last closed tab, a closed tab before the active one no longer changes the selection.
 - `Ctrl+Scroll` zooms icons in discrete steps instead of a continuous, jumpy scale.
 

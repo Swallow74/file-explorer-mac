@@ -29,7 +29,12 @@ struct FileItem: Identifiable, Hashable {
     /// A mount point: the startup disk or something mounted under /Volumes.
     var isVolume: Bool { url.path == "/" || url.deletingLastPathComponent().path == "/Volumes" }
 
-    static func == (a: FileItem, b: FileItem) -> Bool { a.url == b.url }
+    /// Size, date and tags count too: a row compares equal to its previous
+    /// self only if nothing it draws changed — otherwise SwiftUI skips the
+    /// redraw and a file rewritten in place keeps its old size and date.
+    static func == (a: FileItem, b: FileItem) -> Bool {
+        a.url == b.url && a.size == b.size && a.modified == b.modified && a.tags == b.tags
+    }
     func hash(into h: inout Hasher) { h.combine(url) }
 
     /// Windows hides known extensions by default; Explorer shows the stem for files.

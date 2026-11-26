@@ -311,7 +311,10 @@ final class Explorer: ObservableObject {
     /// Tab whose remote-folder listing is running in the background; the
     /// file area overlays an hourglass while it is the one on screen.
     @Published private(set) var waitingTab: UUID? = nil
-    private var waitGen = 0
+    /// Bumped by every reload: a slow listing (a NAS waking up) that lands
+    /// after a newer one must not overwrite it with an older snapshot.
+    private var loadGen = 0
+    private var wakeObservers: [NSObjectProtocol] = []
 
     var waitingOnCurrentTab: Bool { waitingTab == tab.id }
 
@@ -378,13 +381,39 @@ final class Explorer: ObservableObject {
     init() {
         reload()
         loadRecents()
+        // The folder watcher misses whatever changed while the Mac slept or
+        // the app sat unused: a NAS that dropped its SMB session (or a drive
+        // remounted) leaves the watcher on a dead vnode, silent for good. So
+        // coming back to the app — or the Mac waking — lists the folder again.
+        let refresh: (Notification) -> Void = { [weak self] _ in
+            guard let self, self.tab.editing == nil, !self.tab.searching else { return }
+            self.reload(quiet: true)
+            self.loadRecents()
+        }
+        wakeObservers = [
+            NotificationCenter.default.addObserver(
+                forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main, using: refresh),
+            NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.didWakeNotification, object: nil, queue: .main, using: refresh),
+        ]
+    }
+
+    deinit {
+        wakeObservers.forEach {
+            NotificationCenter.default.removeObserver($0)
+            NSWorkspace.shared.notificationCenter.removeObserver($0)
+        }
     }
 
     // MARK: Loading
 
-    func reload() {
+    /// `quiet`: a background refresh of the folder already on screen — no
+    /// hourglass over it while a network listing runs.
+    func reload(quiet: Bool = false) {
         NavCache.clear()
         let loc = tab.location
+        loadGen += 1
+        let gen = loadGen
         // Listing an archive spawns bsdtar, which can take seconds on a large
         // archive, so it runs off the main thread. So does any folder on a
         // network volume: a sleeping NAS can take over a minute to list, and
@@ -399,21 +428,19 @@ final class Explorer: ObservableObject {
             tab = t
             DispatchQueue.global(qos: .userInitiated).async {
                 let children = Archives.children(of: archive, at: inner)
-                DispatchQueue.main.async { self.apply(children, toTab: tabID, expecting: loc) }
+                DispatchQueue.main.async { self.apply(children, toTab: tabID, expecting: loc, gen: gen) }
             }
             return
         }
         if case .folder(let url) = loc, Loader.isRemote(url) {
             let tabID = tab.id
             let showHidden = prefs.showHidden
-            waitGen += 1
-            let gen = waitGen
-            waitingTab = tabID
+            if !quiet { waitingTab = tabID }
             DispatchQueue.global(qos: .userInitiated).async {
                 let children = Loader.contents(of: url, showHidden: showHidden)
                 DispatchQueue.main.async {
-                    if self.waitingTab == tabID, gen == self.waitGen { self.waitingTab = nil }
-                    self.apply(children, toTab: tabID, expecting: loc)
+                    if self.waitingTab == tabID, gen == self.loadGen { self.waitingTab = nil }
+                    self.apply(children, toTab: tabID, expecting: loc, gen: gen)
                 }
             }
             return
@@ -437,13 +464,14 @@ final class Explorer: ObservableObject {
         case .archive:
             break  // handled above
         }
-        apply(items, toTab: tab.id, expecting: loc)
+        apply(items, toTab: tab.id, expecting: loc, gen: gen)
     }
 
     /// Filters, sorts and installs a freshly listed set of items, unless the
     /// tab has moved on to another location in the meantime.
-    private func apply(_ raw: [FileItem], toTab id: UUID, expecting loc: Location) {
-        guard let i = tabs.firstIndex(where: { $0.id == id }), tabs[i].location == loc else { return }
+    private func apply(_ raw: [FileItem], toTab id: UUID, expecting loc: Location, gen: Int) {
+        guard gen == loadGen,
+              let i = tabs.firstIndex(where: { $0.id == id }), tabs[i].location == loc else { return }
         var items = raw
         if let f = filterKind { items = items.filter { matchesFilter($0, f) } }
         items = Loader.sort(items, by: prefs.sortKey, ascending: prefs.sortAscending)
@@ -593,7 +621,7 @@ final class Explorer: ObservableObject {
                   self.tabs[j].location == destLoc, case .folder(let u) = destLoc else { return }
             if j == self.active { self.reload() }
             else { self.apply(Loader.contents(of: u, showHidden: self.prefs.showHidden),
-                              toTab: destTab, expecting: destLoc) }
+                              toTab: destTab, expecting: destLoc, gen: self.loadGen) }
         }
     }
 
@@ -1211,7 +1239,7 @@ final class Explorer: ObservableObject {
             guard tabs[i].id != activeID, let u = tabs[i].location.url,
                   dirs.contains(u.standardizedFileURL.path) else { continue }
             let items = Loader.contents(of: u, showHidden: prefs.showHidden)
-            apply(items, toTab: tabs[i].id, expecting: tabs[i].location)
+            apply(items, toTab: tabs[i].id, expecting: tabs[i].location, gen: loadGen)
         }
         reload()
     }
