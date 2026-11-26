@@ -294,6 +294,8 @@ final class ClickModifiers {
     static let shared = ClickModifiers()
 
     private(set) var atPress: NSEvent.ModifierFlags = []
+    /// 2 for the second press of a double-click, as AppKit counts it.
+    private(set) var clickCount = 1
     private var monitor: Any?
 
     func install() {
@@ -310,6 +312,7 @@ final class ClickModifiers {
     /// click would see an empty keyboard again.
     func note(_ event: NSEvent) {
         atPress = event.modifierFlags
+        clickCount = event.clickCount
     }
 }
 
@@ -317,6 +320,23 @@ final class ClickModifiers {
 /// press time.
 enum ItemClick {
     static let selectionModifiers: NSEvent.ModifierFlags = [.shift, .control, .command]
+    /// A slow-click rename waiting out the double-click interval.
+    static var pendingRename: DispatchWorkItem?
+    private static var lastTap: (id: String, at: TimeInterval)?
+
+    /// Whether this tap completes a double-click on `id`. AppKit's click
+    /// count is the first answer; the tap history backs it up for presses
+    /// that arrive without one (synthesized events, assistive devices).
+    static func isDoubleClick(on id: String) -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        if ClickModifiers.shared.clickCount >= 2
+            || (lastTap.map { $0.id == id && now - $0.at <= NSEvent.doubleClickInterval } ?? false) {
+            lastTap = nil
+            return true
+        }
+        lastTap = (id, now)
+        return false
+    }
 
     /// A second plain click on a name that is already the sole selection starts
     /// an in-place rename, the way Explorer and the Finder do it. A click with
@@ -335,8 +355,11 @@ enum ItemClick {
 }
 
 struct ItemInteraction: ViewModifier {
-    @ObservedObject var ex: Explorer
-    @ObservedObject var menus: MenuController
+    // Not observed: the body only hands these to gesture closures, which read
+    // the live state when they fire. Observing them redrew every visible row
+    // on every click.
+    let ex: Explorer
+    let menus: MenuController
     let item: FileItem
     @State private var dropTargeted = false
 
@@ -347,15 +370,29 @@ struct ItemInteraction: ViewModifier {
             .marqueeItem(item.id)
             .dropHighlight(dropTargeted)
             .contentShape(Rectangle())
-            .onTapGesture(count: 2) { ex.open(item) }
-            .onTapGesture(count: 1) {
+            // One tap gesture, not a count-2 one stacked on a count-1 one:
+            // SwiftUI holds the single tap back for the whole double-click
+            // interval to rule out a second click, and the selection lagged
+            // visibly behind every click. AppKit's click count tells the two
+            // apart on the spot; only the slow-click rename waits, so a
+            // double-click on a selected item opens it instead.
+            .onTapGesture {
+                ItemClick.pendingRename?.cancel()
+                ItemClick.pendingRename = nil
+                if ItemClick.isDoubleClick(on: item.id) { ex.open(item); return }
                 let f = ClickModifiers.shared.atPress
                 if ItemClick.startsRename(modifiers: f,
                                           isSoleSelection: ex.tab.selection == [item.id],
                                           editing: ex.tab.editing,
                                           menuOpen: MenuController.anyOpen,
                                           freshlyCommitted: ex.freshRenameCommit) {
-                    ex.beginRename(item)
+                    let work = DispatchWorkItem { [weak ex] in
+                        ItemClick.pendingRename = nil
+                        guard let ex, ex.tab.selection == [item.id] else { return }
+                        ex.beginRename(item)
+                    }
+                    ItemClick.pendingRename = work
+                    DispatchQueue.main.asyncAfter(deadline: .now() + NSEvent.doubleClickInterval, execute: work)
                 } else {
                     ex.select(item, extend: f.contains(.shift),
                               toggle: f.contains(.control) || f.contains(.command))
@@ -419,6 +456,23 @@ extension View {
 
 // MARK: - Details view
 
+/// What a row draws from the pane's state, handed down as plain values: a
+/// click then redraws only the rows whose flags changed, instead of every row
+/// observing the whole Explorer and redrawing on any change in the window.
+struct RowFlags: Equatable {
+    var selected = false
+    var editing = false
+    var cutOut = false
+}
+
+extension Explorer {
+    func flags(_ item: FileItem) -> RowFlags {
+        RowFlags(selected: tab.selection.contains(item.id),
+                 editing: tab.editing == item.id,
+                 cutOut: !Clipboard.cutPaths.isEmpty && Clipboard.cutPaths.contains(item.url.path))
+    }
+}
+
 struct DetailsView: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
@@ -453,7 +507,7 @@ struct DetailsView: View {
                             }
                             if !ex.collapsedGroups.contains(group.title) {
                                 ForEach(group.items) { item in
-                                    DetailsRow(ex: ex, menus: menus, item: item,
+                                    DetailsRow(ex: ex, menus: menus, item: item, flags: ex.flags(item),
                                                height: rowHeight, columns: columns)
                                         .id(item.id)
                                 }
@@ -592,16 +646,17 @@ struct DetailColumns: Equatable {
 }
 
 struct DetailsRow: View {
-    @ObservedObject var ex: Explorer
-    @ObservedObject var menus: MenuController
+    let ex: Explorer
+    let menus: MenuController
     let item: FileItem
+    let flags: RowFlags
     let height: CGFloat
     let columns: DetailColumns
     @State private var hovering = false
     @ObservedObject private var prefs = Prefs.shared
 
-    private var selected: Bool { ex.tab.selection.contains(item.id) }
-    private var cutOut: Bool { Clipboard.cutPaths.contains(item.url.path) }
+    private var selected: Bool { flags.selected }
+    private var cutOut: Bool { flags.cutOut }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -613,7 +668,7 @@ struct DetailsRow: View {
                 }
                 ItemIcon(item: item, size: 16)
                     .opacity(cutOut ? 0.45 : 1)
-                if ex.tab.editing == item.id {
+                if flags.editing {
                     RenameField(ex: ex, item: item)
                         .frame(height: 20)
                 } else {
@@ -707,7 +762,7 @@ struct IconGridView: View {
                                                          spacing: 4, alignment: .top)],
                                       alignment: .leading, spacing: 4) {
                                 ForEach(group.items) { item in
-                                    IconCell(ex: ex, menus: menus, item: item,
+                                    IconCell(ex: ex, menus: menus, item: item, flags: ex.flags(item),
                                              size: prefs.viewMode.iconSize, cell: cell)
                                         .id(item.id)
                                 }
@@ -727,23 +782,24 @@ struct IconGridView: View {
 }
 
 struct IconCell: View {
-    @ObservedObject var ex: Explorer
-    @ObservedObject var menus: MenuController
+    let ex: Explorer
+    let menus: MenuController
     let item: FileItem
+    let flags: RowFlags
     let size: CGFloat
     let cell: CGSize
     @State private var hovering = false
     @ObservedObject private var prefs = Prefs.shared
 
-    private var selected: Bool { ex.tab.selection.contains(item.id) }
-    private var cutOut: Bool { Clipboard.cutPaths.contains(item.url.path) }
+    private var selected: Bool { flags.selected }
+    private var cutOut: Bool { flags.cutOut }
 
     var body: some View {
         VStack(spacing: 6) {
             ItemIcon(item: item, size: size)
                 .opacity(cutOut ? 0.45 : 1)
                 .overlay(alignment: .bottomTrailing) { TagDots(tags: item.tags) }
-            if ex.tab.editing == item.id {
+            if flags.editing {
                 RenameField(ex: ex, item: item).frame(height: 20).padding(.horizontal, 4)
             } else {
                 Text(item.displayName)
@@ -795,7 +851,7 @@ struct ListFlowView: View {
                     ForEach(Array(columns.enumerated()), id: \.offset) { _, col in
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(col) { item in
-                                SmallRow(ex: ex, menus: menus, item: item, width: 220, height: rowH)
+                                SmallRow(ex: ex, menus: menus, item: item, flags: ex.flags(item), width: 220, height: rowH)
                             }
                         }
                         .frame(width: 220)
@@ -809,18 +865,19 @@ struct ListFlowView: View {
 }
 
 struct SmallRow: View {
-    @ObservedObject var ex: Explorer
-    @ObservedObject var menus: MenuController
+    let ex: Explorer
+    let menus: MenuController
     let item: FileItem
+    let flags: RowFlags
     let width: CGFloat
     let height: CGFloat
     @State private var hovering = false
-    private var selected: Bool { ex.tab.selection.contains(item.id) }
+    private var selected: Bool { flags.selected }
 
     var body: some View {
         HStack(spacing: 8) {
             ItemIcon(item: item, size: 16)
-            if ex.tab.editing == item.id {
+            if flags.editing {
                 RenameField(ex: ex, item: item).frame(height: 18)
             } else {
                 Text(item.displayName)
@@ -850,14 +907,14 @@ struct TilesView: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 230, maximum: 320), spacing: 6)],
                           alignment: .leading, spacing: 6) {
                     ForEach(ex.tab.items) { item in
-                        TileCell(ex: ex, menus: menus, item: item)
+                        TileCell(ex: ex, menus: menus, item: item, flags: ex.flags(item))
                     }
                 }
                 .padding(12)
             } else {
                 LazyVStack(spacing: 2) {
                     ForEach(ex.tab.items) { item in
-                        ContentRow(ex: ex, menus: menus, item: item)
+                        ContentRow(ex: ex, menus: menus, item: item, flags: ex.flags(item))
                     }
                 }
                 .padding(.horizontal, 10)
@@ -869,17 +926,18 @@ struct TilesView: View {
 }
 
 struct TileCell: View {
-    @ObservedObject var ex: Explorer
-    @ObservedObject var menus: MenuController
+    let ex: Explorer
+    let menus: MenuController
     let item: FileItem
+    let flags: RowFlags
     @State private var hovering = false
-    private var selected: Bool { ex.tab.selection.contains(item.id) }
+    private var selected: Bool { flags.selected }
 
     var body: some View {
         HStack(spacing: 10) {
             ItemIcon(item: item, size: 48)
             VStack(alignment: .leading, spacing: 2) {
-                if ex.tab.editing == item.id {
+                if flags.editing {
                     RenameField(ex: ex, item: item).frame(height: 20)
                 } else {
                     Text(item.displayName).font(Win.body(12)).foregroundStyle(Win.text).lineLimit(1)
@@ -900,17 +958,18 @@ struct TileCell: View {
 }
 
 struct ContentRow: View {
-    @ObservedObject var ex: Explorer
-    @ObservedObject var menus: MenuController
+    let ex: Explorer
+    let menus: MenuController
     let item: FileItem
+    let flags: RowFlags
     @State private var hovering = false
-    private var selected: Bool { ex.tab.selection.contains(item.id) }
+    private var selected: Bool { flags.selected }
 
     var body: some View {
         HStack(spacing: 12) {
             ItemIcon(item: item, size: 32)
             VStack(alignment: .leading, spacing: 2) {
-                if ex.tab.editing == item.id {
+                if flags.editing {
                     RenameField(ex: ex, item: item).frame(height: 20)
                 } else {
                     Text(item.displayName).font(Win.body(12)).foregroundStyle(Win.text).lineLimit(1)

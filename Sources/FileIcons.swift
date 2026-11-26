@@ -174,12 +174,15 @@ final class ThumbCache {
     /// Files no generator could draw: asked once, not on every redraw.
     private var failed = Set<String>()
 
-    func cached(_ url: URL, size: CGFloat) -> NSImage? {
-        cache.object(forKey: key(url, size))
+    func cached(_ url: URL, modified: Date, size: CGFloat) -> NSImage? {
+        cache.object(forKey: key(url, modified, size))
     }
 
-    private func key(_ url: URL, _ size: CGFloat) -> NSString {
-        "\(url.path)|\(Int(size))" as NSString
+    /// The modification date is part of the key: a file rewritten in place
+    /// (an edited photo, a re-exported PDF) gets a new thumbnail instead of
+    /// the one drawn from its old contents.
+    private func key(_ url: URL, _ modified: Date, _ size: CGFloat) -> NSString {
+        "\(url.path)|\(modified.timeIntervalSinceReferenceDate)|\(Int(size))" as NSString
     }
 
     /// Which kinds are worth a thumbnail request at all. Everything Quick Look
@@ -205,8 +208,9 @@ final class ThumbCache {
         return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
     }
 
-    func request(_ url: URL, size: CGFloat, kind: FileKind, done: @escaping (NSImage) -> Void) {
-        let k = key(url, size) as String
+    func request(_ url: URL, modified: Date, size: CGFloat, kind: FileKind,
+                 done: @escaping (NSImage) -> Void) {
+        let k = key(url, modified, size) as String
         if inFlight.contains(k) || failed.contains(k) { return }
         inFlight.insert(k)
         let scale = NSScreen.main?.backingScaleFactor ?? 2
@@ -214,7 +218,7 @@ final class ThumbCache {
             DispatchQueue.main.async {
                 self.inFlight.remove(k)
                 guard let img else { self.failed.insert(k); return }
-                self.cache.setObject(img, forKey: self.key(url, size))
+                self.cache.setObject(img, forKey: k as NSString)
                 done(img)
             }
         }
@@ -235,6 +239,7 @@ final class ThumbCache {
 
 struct ThumbnailIcon: View {
     let url: URL
+    let modified: Date
     let size: CGFloat
     let kind: FileKind
     var label: String = ""
@@ -252,10 +257,13 @@ struct ThumbnailIcon: View {
                 FileSheetIcon(size: size, kind: kind, label: label)
             }
         }
-        .onAppear {
-            if let c = ThumbCache.shared.cached(url, size: size) { image = c; return }
-            ThumbCache.shared.request(url, size: size, kind: kind) { img in image = img }
-        }
+        .onAppear(perform: load)
+        .onChange(of: modified) { _, _ in load() }
+    }
+
+    private func load() {
+        if let c = ThumbCache.shared.cached(url, modified: modified, size: size) { image = c; return }
+        ThumbCache.shared.request(url, modified: modified, size: size, kind: kind) { img in image = img }
     }
 }
 
@@ -300,7 +308,7 @@ struct ItemIcon: View {
             FileSheetIcon(size: size, kind: .disk)
         default:
             if size >= 24, ThumbCache.wantsThumbnail(item), !Loader.isRemote(item.url) {
-                ThumbnailIcon(url: item.url, size: size, kind: item.kind, label: Self.label(item))
+                ThumbnailIcon(url: item.url, modified: item.modified, size: size, kind: item.kind, label: Self.label(item))
             } else {
                 FileSheetIcon(size: size, kind: item.kind, label: Self.label(item))
             }

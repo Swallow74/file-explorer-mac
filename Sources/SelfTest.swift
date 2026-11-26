@@ -131,6 +131,16 @@ enum SelfTest {
         }
         check("the click modifiers are the ones held at press time",
               ClickModifiers.shared.atPress.contains(.shift))
+        check("two quick taps on one item make a double-click, on two items they do not",
+              !ItemClick.isDoubleClick(on: "/a") && !ItemClick.isDoubleClick(on: "/b")
+              && ItemClick.isDoubleClick(on: "/b") && !ItemClick.isDoubleClick(on: "/b"))
+        if let f = ex.tab.items.first {
+            let touched = FileItem(url: f.url, name: f.name, isDirectory: f.isDirectory,
+                                   isPackage: f.isPackage, isHidden: f.isHidden, isSymlink: f.isSymlink,
+                                   size: f.size + 1, modified: f.modified.addingTimeInterval(1),
+                                   created: f.created, ext: f.ext)
+            check("a file rewritten in place no longer compares equal (rows redraw)", touched != f)
+        }
 
         // Delete to Recycle Bin + undo
         if let item = ex.tab.items.first(where: { $0.name == "Renamed" }) {

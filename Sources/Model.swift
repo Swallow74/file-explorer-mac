@@ -255,7 +255,9 @@ enum Places {
 
     /// iCloud Drive plus every File Provider root in ~/Library/CloudStorage
     /// (OneDrive, Google Drive accounts, Dropbox...), one sidebar entry each.
-    static var cloudPlaces: [Place] {
+    static var cloudPlaces: [Place] { NavCache.cloudPlaces() }
+
+    static func scanCloudPlaces() -> [Place] {
         let fm = FileManager.default
         var out: [Place] = []
         let icloud = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")

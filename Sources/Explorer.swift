@@ -786,7 +786,14 @@ final class Explorer: ObservableObject {
 
     // MARK: Selection
 
-    var selectedItems: [FileItem] { tab.items.filter { tab.selection.contains($0.id) } }
+    var selectedItems: [FileItem] {
+        let t = tab
+        switch t.selection.count {
+        case 0: return []
+        case 1: return t.items.first { $0.id == t.selection.first }.map { [$0] } ?? []
+        default: return t.items.filter { t.selection.contains($0.id) }
+        }
+    }
 
     func select(_ item: FileItem, extend: Bool, toggle: Bool) {
         onInteract?()

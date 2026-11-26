@@ -419,16 +419,16 @@ struct PreviewPane: View {
         .frame(width: 320)
         .background(Win.sidebar)
         .overlay(alignment: .leading) { Rectangle().fill(Win.divider).frame(width: 1) }
-        .onChange(of: item?.id) { _, _ in loadPreview() }
+        .onChange(of: item) { _, _ in loadPreview() }
         .onAppear(perform: loadPreview)
     }
 
     private func loadPreview() {
         image = nil
         guard let item, !item.isDirectory else { return }
-        if let cached = ThumbCache.shared.cached(item.url, size: 512) { image = cached; return }
-        ThumbCache.shared.request(item.url, size: 512, kind: item.kind) { img in
-            if self.item?.id == item.id { image = img }
+        if let cached = ThumbCache.shared.cached(item.url, modified: item.modified, size: 512) { image = cached; return }
+        ThumbCache.shared.request(item.url, modified: item.modified, size: 512, kind: item.kind) { img in
+            if self.item == item { image = img }
         }
     }
 }

@@ -372,6 +372,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **User folders resolved through the system**: Desktop, Documents and the others still work when they have been moved or are symlinks.
 - Home and This PC watch `/Volumes`, so an unplugged drive disappears instead of lingering.
 - **No stale folders after idle**: returning to the app or waking the Mac lists the open folder again (a NAS that dropped its session silences the folder watcher), a slow listing can no longer overwrite a newer one, and a file rewritten in place shows its new size and date.
+- **Snappier clicks**: a click selects at once instead of waiting out the double-click interval (only the slow-click rename waits); rows redraw only when their own selection, rename or cut state changes; the sidebar no longer re-reads cloud folders on every click; thumbnails follow a file's modification date, so an edited image shows its new contents.
 - **Tabs**: right-click menu (duplicate, paste into tab, close), drop files onto a tab to land them in its folder, `Ctrl+Shift+T` reopens the last closed tab, a closed tab before the active one no longer changes the selection.
 - `Ctrl+Scroll` zooms icons in discrete steps instead of a continuous, jumpy scale.
 

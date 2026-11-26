@@ -50,6 +50,7 @@ struct NavNode: Identifiable {
 enum NavCache {
     private static var dirs: [String: (at: Date, items: [FileItem])] = [:]
     private static var volumes: (at: Date, items: [FileItem])?
+    private static var cloud: [Place]?
     private static let ttl: TimeInterval = 5
 
     static func folders(in url: URL, showHidden: Bool) -> [FileItem] {
@@ -67,7 +68,16 @@ enum NavCache {
         return items
     }
 
-    static func clear() { dirs.removeAll(); volumes = nil }
+    /// iCloud and ~/Library/CloudStorage roots: a directory listing the
+    /// sidebar would otherwise repeat on every redraw (every click).
+    static func cloudPlaces() -> [Place] {
+        if let cloud { return cloud }
+        let places = Places.scanCloudPlaces()
+        cloud = places
+        return places
+    }
+
+    static func clear() { dirs.removeAll(); volumes = nil; cloud = nil }
 }
 
 struct NavPane: View {
@@ -109,6 +119,9 @@ struct NavPane: View {
     private var nodes: [NavNode] {
         var out: [NavNode] = []
         let places = Places.sidebar
+        // Read once: Places.favouritesHeaderID rebuilds the whole sidebar list
+        // (with disk reads) and used to run once per entry, on every redraw.
+        let favouritesHeader = places.first(where: Places.isFavourite)?.id
 
         func children(of url: URL, level: Int, parentID: String) {
             let dirs = NavCache.folders(in: url, showHidden: Prefs.shared.showHidden)
@@ -135,7 +148,7 @@ struct NavPane: View {
             // The favourites are separated from Home and Gallery, and This PC
             // from them: the gap belongs to the first favourite, wherever the
             // user dragged it, and to This PC.
-            let spacer = p.id == "thispc" || p.id == Places.favouritesHeaderID
+            let spacer = p.id == "thispc" || p.id == favouritesHeader
             out.append(NavNode(id: p.id, title: p.title, icon: p.icon, accent: p.accent,
                                location: loc, url: p.url, level: 0,
                                expandable: p.special != .home && p.special != .network,
