@@ -260,6 +260,16 @@ struct AddressBar: View {
                     ex.addressText = ex.addressPath
                     ex.addressEditing = true
                 }
+                .onRightClick { p in
+                    guard let path = ex.currentDirectory?.path else { return }
+                    menus.show(id: "address", anchor: .zero, entries: [
+                        MenuEntry(title: tr("Copy path"), icon: .copy) {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(path, forType: .string)
+                            ex.flash(tr("Path copied"))
+                        },
+                    ], point: p)
+                }
                 .help(tr("Click to type the path (Ctrl+L)"))
             }
         }

@@ -29,7 +29,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 
 |  |  |
 |---|---|
-| **Pixel-faithful chrome** | Tab strip with Windows caption buttons drawn where the traffic lights normally go, breadcrumb address bar with sibling drop-downs, command bar, status bar (with a centred, azure AlexTech.ai link). Colours come from the WinUI 3 dark and light palettes. |
+| **Pixel-faithful chrome** | Tab strip with Windows caption buttons drawn where the traffic lights normally go, breadcrumb address bar with sibling drop-downs (right-click it to copy the folder's path), command bar, status bar (with a centred, azure AlexTech.ai link). Colours come from the WinUI 3 dark and light palettes. |
 | **Redrawn Fluent icons** | Segoe Fluent Icons isn't licensed onto macOS, so every glyph is redrawn as vector geometry on Windows' own 16pt design grid, including the two-tone accent treatment on cut, copy, paste, rename, share, sort and view. |
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
 | **Eight view modes** | Icon grids with live thumbnails (images decoded by content, so a JPEG renamed `.webp` still shows; WebP, AVIF, HEIC, EXR, RAW, PDF, video, audio cover art, documents, text, code and fonts), List that flows into columns, Details with sortable resizable columns, Tiles, Content. **Group by** Name, Type, Date modified or Size, with collapsible Windows-style section headers (List, Tiles and Content ignore grouping, as Windows does). |
@@ -362,6 +362,7 @@ Fork of [gmazaratti/windows-explorer-mac](https://github.com/gmazaratti/windows-
 - **Services menu**, **AirDrop**, *Show package contents*, **Spotlight** content search, Recycle Bin *Restore* and *Empty Recycle Bin*.
 
 **Navigation and views**
+- **Address bar right-click**: right-clicking the breadcrumb bar opens a *Copy path* menu that puts the current folder's path on the clipboard.
 - **Nav bar matches Windows 11**: a `⌄` history button between forward and up opens the tab's whole navigation history with the current page checked, and Refresh now sits after the address bar (before the search box) instead of beside the arrows.
 - **Sidebar favourites**: drag a folder onto the navigation pane (not onto a row) to pin it, as in the Finder; right-click > *Unpin from Quick access* removes it; the sidebar updates at once.
 - **Applications in the favourites**: `/Applications` is pinned by default after the six Windows defaults, with its own app-grid glyph in the sidebar, in the Home tiles, in the tab and in the breadcrumb. It can be unpinned like any other folder.
